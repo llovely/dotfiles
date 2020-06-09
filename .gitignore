@@ -2,6 +2,6 @@
 .DS_Store
 
 # Files
-.private 	# Intended for private info
+shell/.private 	# Intended for private info
 
 # Miscellaneous

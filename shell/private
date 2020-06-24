@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-#
-# dotfiles/shell/private
-#
-# File intended to store the user's private commands and credentials.
-# The contents of this file will not be commited, and is sourced only by
-# the bashrc file.
-#

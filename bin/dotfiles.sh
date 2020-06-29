@@ -98,17 +98,17 @@ parseArgs() {
     while [[ ! OPTIND -gt "$#" ]]; do
         while getopts ":hsl:" opt; do
             case $opt in
-                s)	# Silent Mode selected
+                s)  # Silent Mode selected
                     silentMode=true
                     ;;
-                l)	# log_ID provided
+                l)  # log_ID provided
                     logProvided=true
                     logID="$OPTARG"
                     ;;
-                h)	# Help Message requested
+                h)  # Help Message requested
                     displayHelp=true
                     ;;
-                *)	# Unknown Option provided
+                *)  # Unknown Option provided
                     invalidArg=true
                     ;;
             esac
@@ -197,7 +197,7 @@ else
         # The contents of this file will not be commited, and is sourced only
         # by the bashrc file.
 
-	__EOF__
+__EOF__
     ) > "$DOTFILES_DIR/$PRIVATE_DOTFILE"
     if [[ ! -f "$DOTFILES_DIR/$PRIVATE_DOTFILE" ]]; then
         logDotfiles "$logID" \

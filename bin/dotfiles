@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# dotfiles/bin/dotfiles.sh
+# dotfiles/bin/dotfiles
 #
 # Installs relevant dotfiles in the user's $HOME directory using symbolic
 # links.
@@ -8,7 +8,7 @@
 # Author: Luis Love
 #
 
-source "$HOME/.dotfiles/lib/logger"
+source "$HOME/.dotfiles/lib/logger.sh"
 
 # Option Flags
 silentMode=false

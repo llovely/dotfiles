@@ -1,5 +1,7 @@
 # Directories
 .DS_Store
+**/.DS_Store
+/log/*
 
 # Files
 shell/private

@@ -1,0 +1,10 @@
+#
+# dotfiles/config/git/gitignore
+#
+# Specifies what files and folders to ignore.
+#
+# Author: Luis Love
+#
+
+.DS_Store
+**/.DS_Store

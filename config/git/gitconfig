@@ -1,0 +1,12 @@
+#
+# dotfiles/config/git/gitconfig
+#
+# Git configurations for aliases, user settings, etc.
+#
+# Author: Luis Love
+#
+
+[alias]
+	hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
+	unstage = restore --staged
+	last = log -1 HEAD

@@ -13,12 +13,17 @@ isBrewInstalled() {
 
 
 installBrew() {
-	if ! isBrewInstalled; then
-		echo "TODO"
-	else
-		echo "BREW is already installed!"
+	if isBrewInstalled; then
+		return 0
 	fi
 
+	(
+	echo -ne '\n' | bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" > /dev/null 2>&1
+	)
+	if [[ "$?" -ne 0 ]]; then
+		return 1
+	fi
+	
 	return 0
 }
 

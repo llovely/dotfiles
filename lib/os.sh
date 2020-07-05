@@ -6,17 +6,23 @@
 # Author: Luis Love
 #
 
+# Ubuntu Supported
 declare -r UBUNTU_NAME="ubuntu"
 declare -r SUPPORTED_UBUNTU="Ubuntu"
-declare -r SUPPORTED_UBUNTU_MIN_VERS="18.04"
 
+# macOS Supported
 declare -r MACOS_NAME="macOS"
 declare -r SUPPORTED_MACOS="$MACOS_NAME"
-declare -r SUPPORTED_MACOS_MIN_VERS="10.15.2"
 
+# Unknown OS Criteria
 declare -r UNKNOWN_OS="(unknownOS)"
 declare -r UNKNOWN_OS_VERS="(unknownVersion)"
 declare -r UNKNOWN_OS_SUPPORT="(unknownSupport)"
+
+# OS Classifications
+declare -r OS_TYPE_MACOS="$MACOS_NAME"
+declare -r OS_TYPE_LINUX="linux"
+declare -r OS_TYPE_UNKNOWN="$UNKNOWN_OS"
 
 
 _OSInfo() {
@@ -44,51 +50,7 @@ _OSInfo() {
 }
 
 
-_validOSVersion() {
-    local minVer=$1
-    local curVer=$2
-    local -i mv_head=0
-    local -i cv_head=0
-
-    if [[ ! "$curVer" =~ ^[0-9\.]+$ ]]; then 
-        return 1
-    fi
-
-    while ! ([[ -z "$curVer" && -z "$minVer" ]]); do
-
-        if [[ -z "$minVer" ]]; then
-            mv_head="0"
-        else
-            mv_head=${minVer%%.*}
-            minVer=${minVer#"${mv_head}"}
-            ((mv_head = 10#$mv_head))
-            if [[ "$minVer" =~ ^\..* ]]; then
-                minVer=${minVer#.} 
-                [[ "$minVer" =~ ^\..* ]] && minVer="0$minVer"                
-            fi
-        fi
-
-        if [[ -z "$curVer" ]]; then
-            cv_head="0"
-        else
-            cv_head=${curVer%%.*}
-            curVer=${curVer#"${cv_head}"}
-            ((cv_head = 10#$cv_head))
-            if [[ "$curVer" =~ ^\..* ]]; then 
-                curVer=${curVer#.} 
-                [[ "$curVer" =~ ^\..* ]] && curVer="0$curVer"
-            fi
-        fi
-        
-        [[ "$cv_head" -gt "$mv_head" ]] && return 0
-        [[ "$cv_head" -lt "$mv_head" ]] && return 1
-    done
-
-    return 0
-}
-
-
-supportedOS() {
+OSsupported() {
     local os=""
     local version=""
     local support=""
@@ -96,15 +58,11 @@ supportedOS() {
     IFS="_" read os version support <<< "$(_OSInfo 2> /dev/null)"
 
     case "$os" in
-        $SUPPORTED_MACOS)
-            if _validOSVersion "$SUPPORTED_MACOS_MIN_VERS" "$version"; then
-                return 0
-            fi
+        "$SUPPORTED_MACOS")
+            return 0
             ;;
-        $SUPPORTED_UBUNTU)
-            if _validOSVersion "$SUPPORTED_UBUNTU_MIN_VERS" "$version"; then
-                return 0
-            fi
+        "$SUPPORTED_UBUNTU")
+            return 0
             ;;
         *)  # Invalid OS
             ;;
@@ -120,15 +78,14 @@ OSName() {
     local support=""
 
     IFS="_" read os version support <<< "$(_OSInfo 2> /dev/null)"
-    [[ -z "$os" || -z "$version" || -z "$support" ]] && return 1
 
-    if supportedOS; then
+    if OSsupported; then
         case "$os" in
-            $SUPPORTED_MACOS)
+            "$SUPPORTED_MACOS")
                 echo "$MACOS_NAME"
                 return 0
                 ;;
-            $SUPPORTED_UBUNTU)
+            "$SUPPORTED_UBUNTU")
                 echo "$UBUNTU_NAME"
                 return 0
                 ;;
@@ -141,13 +98,64 @@ OSName() {
 }
 
 
-OSVersion() {
+OSType() {
     local os=""
-    local version=""
-    local support=""
 
-    IFS="_" read os version support <<< "$(_OSInfo 2> /dev/null)"
-    [[ -z "$os" || -z "$version" || -z "$support" ]] && return 1
+    case "$OSTYPE" in
+        darwin*) # OS is macOS
+                os="$OS_TYPE_MACOS"
+                ;;
+        linux*) # OS is some Linux Distro
+                os="$OS_TYPE_LINUX"
+                ;;
+        *) # Unknown OS
+                os="$OS_TYPE_UNKNOWN"
+                ;;
+    esac 
 
-    echo "$version"
+    echo "$os"
 }
+
+
+# _validOSVersion() {
+#     local minVer=$1
+#     local curVer=$2
+#     local -i mv_head=0
+#     local -i cv_head=0
+
+#     if [[ ! "$curVer" =~ ^[0-9\.]+$ ]]; then 
+#         return 1
+#     fi
+
+#     while ! ([[ -z "$curVer" && -z "$minVer" ]]); do
+
+#         if [[ -z "$minVer" ]]; then
+#             mv_head="0"
+#         else
+#             mv_head=${minVer%%.*}
+#             minVer=${minVer#"${mv_head}"}
+#             ((mv_head = 10#$mv_head))
+#             if [[ "$minVer" =~ ^\..* ]]; then
+#                 minVer=${minVer#.} 
+#                 [[ "$minVer" =~ ^\..* ]] && minVer="0$minVer"                
+#             fi
+#         fi
+
+#         if [[ -z "$curVer" ]]; then
+#             cv_head="0"
+#         else
+#             cv_head=${curVer%%.*}
+#             curVer=${curVer#"${cv_head}"}
+#             ((cv_head = 10#$cv_head))
+#             if [[ "$curVer" =~ ^\..* ]]; then 
+#                 curVer=${curVer#.} 
+#                 [[ "$curVer" =~ ^\..* ]] && curVer="0$curVer"
+#             fi
+#         fi
+        
+#         [[ "$cv_head" -gt "$mv_head" ]] && return 0
+#         [[ "$cv_head" -lt "$mv_head" ]] && return 1
+#     done
+
+#     return 0
+# }

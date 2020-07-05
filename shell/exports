@@ -1,0 +1,9 @@
+#
+# dotfiles/shell/exports
+#
+# Univeral shell exports.
+#
+# Author: Luis Love
+#
+
+export EDITOR="vim"

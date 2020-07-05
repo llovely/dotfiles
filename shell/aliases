@@ -1,0 +1,20 @@
+#
+# dotfiles/shell/aliases
+#
+# Universal aliases.
+#
+# Author: Luis Love
+#
+
+# Allow aliases to be used with sudo
+alias sudo="sudo "
+
+
+# ls Variations
+alias ll="ls -lha"	# Display long format and dotfiles
+alias la="ls -A"      # Display dotfiles
+
+
+# cd Variations
+alias ..="cd .."
+alias ...="cd ../.."

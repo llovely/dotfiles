@@ -1,0 +1,11 @@
+#
+# dotfiles/config/vimrc
+#
+# vimrc dotfile for configuring vim behavior.
+#
+# Author: Luis Love
+#
+
+set history=1000
+set ruler
+set hlsearch

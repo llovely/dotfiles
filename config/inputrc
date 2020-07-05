@@ -1,0 +1,10 @@
+#
+# dotfiles/config/inputrc
+#
+# inputrc dotfile for modifying readline behavior.
+#
+# Author: Luis Love
+#
+
+"\C-p":history-search-backward
+"\C-n":history-search-forward

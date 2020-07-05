@@ -1,0 +1,55 @@
+#
+# dotfiles/shell/bashrc
+#
+# Executed by Bash for non-login shells. Sources all pertinent dotfiles
+# associated with the shell.
+#
+# Author: Luis Love
+#
+
+# If not running interactively, don't do anything.
+# 
+# Since the macOS terminal is defaults to a login shell, the first conditional
+# below is present in order to ensure that the contents of this bashrc file are
+# read given that the shell is non-interactive, in this case.
+[[ ! "$OSTYPE" =~ ^darwin* ]] && [[ "$-" != "*i*" ]] && return
+
+
+sourceDotfiles() {
+    # Directory containing dotfiles associated with a Bash shell
+    local DOTFILES_DIR="$HOME/.dotfiles/shell"
+
+    # List of dotfiles to be sourced
+    local -a DOTFILES=( "$DOTFILES_DIR/bash_prompt" \
+                        "$DOTFILES_DIR/aliases" \
+                        "$DOTFILES_DIR/functions" \
+                        "$DOTFILES_DIR/paths" \
+                        "$DOTFILES_DIR/exports" \
+                        "$DOTFILES_DIR/private" )
+
+    # Sources dotfiles
+    local dotfile=""
+    for dotfile in "${DOTFILES[@]}"; do
+        [[ -r "$dotfile" ]] && [[ -f "$dotfile" ]] && source "$dotfile"
+    done
+
+    # Determines the type of OS in order to source OS specific dotfiles
+    local osType="$(source "$HOME/.dotfiles/lib/os.sh"; echo "$(OSType)")"
+    if [[ -d "$DOTFILES_DIR/$osType" ]]; then
+        for dotfile in $DOTFILES_DIR/$osType/*; do
+            [[ -r "$dotfile" ]] && [[ -f "$dotfile" ]] && source "$dotfile"
+        done
+    fi
+}
+
+
+# Set 256 color profile, where possible
+if [[ $COLORTERM == gnome-* && $TERM == xterm ]] && infocmp gnome-256color >/dev/null 2>&1; then
+    export TERM=gnome-256color
+elif infocmp xterm-256color >/dev/null 2>&1; then
+    export TERM=xterm-256color
+fi
+
+
+sourceDotfiles
+unset sourceDotfiles

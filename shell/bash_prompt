@@ -1,0 +1,60 @@
+#
+# dotfiles/shell/bash_prompt
+#
+# Provides custom PS1 and PS2 prompts for one's shell.
+#
+# Author: Luis Love
+#
+
+# Identifies the current branch within a Git Repo
+gitBranchPrompt() {
+    local branch=""
+
+    if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then 
+        # Attempts to obtain the branch name of the following order:
+        #	1) Short symbolic reference
+        #	2) Short SHA
+        #	3) Unknown branch, provide 'unknown' branch name
+        branch="$(git symbolic-ref --quiet --short HEAD 2> /dev/null || \
+                git rev-parse --short HEAD 2> /dev/null || \
+                echo '(__unknown__)')";
+    else
+        return 1
+    fi
+
+    echo -e "${1}(${2}${branch}${1})"
+}
+
+
+setPrompt() {
+    source "$HOME/.dotfiles/lib/color.sh"
+    local hostColor=""
+
+    # Highlight the hostname when connected via SSH
+    if [[ "$SSH_TTY" ]]; then
+        hostColor="$bold$red"
+    else
+        hostColor="$yellow"
+    fi
+
+    # Creates PS1 Prompt
+    PS1="\[\033]0;\w\007\]"	# Terminal Header
+    PS1+="\n"
+    PS1+="\[$green\]\u"		# Username
+    PS1+="\[$white\]@"
+    PS1+="\[$hostColor\]\h"	# Hostname
+    PS1+="\[$white\]: "
+    PS1+="\[$orange\]\W "	# PWD
+    PS1+="\$(gitBranchPrompt \"$white\" \"$blue\")"  # Current Git Branch
+    PS1+="\n"
+    PS1+="\[$white\]\$ \[$reset\]"
+    export PS1
+
+    # Creates PS2 Prompt
+    PS2="\[$yellow\]> $reset"
+    export PS2
+}
+
+
+setPrompt
+unset setPrompt

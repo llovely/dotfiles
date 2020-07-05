@@ -23,8 +23,8 @@ logID=""
 declare -ri MIN_BASH_VERS=3
 
 # Location of Homebrew Formulas and Casks to be installed
-declare -r BREW_FORMULA_FILE="$HOME/.dotfiles/install/brew_formula"
-declare -r BREW_CASK_FILE="$HOME/.dotfiles/install/brew_cask"
+declare -r BREW_FORMULA_FILE="$HOME/.dotfiles/install/homebrew/brew_formula"
+declare -r BREW_CASK_FILE="$HOME/.dotfiles/install/homebrew/brew_cask"
 
 
 usage() {

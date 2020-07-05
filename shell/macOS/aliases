@@ -1,0 +1,33 @@
+#
+# dotfiles/shell/macOS/aliases
+#
+# macOS specific aliases.
+#
+# Author: Luis Love
+#
+
+# Coloring for ls
+export CLICOLOR=1
+export LSCOLORS=ExFxBxDxCxegedabagacad
+
+# ls Variation
+alias ls="ls -GF"
+
+# Determines if ggrep is installed using Homebrew; if so, then
+# construct grep aliases.
+(
+source "$HOME/projects/dotfiles/lib/brew.sh"
+isBrewInstalled && isBrewFormulaInstalled "grep"
+)
+if [[ "$?" -eq "0" ]]; then
+	alias grep="ggrep --color=auto"
+	alias fgrep="gfgrep --color=auto"
+	alias egrep="gegrep --color=auto"
+fi
+
+# Get OS X Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages
+alias update_system='sudo softwareupdate -i -a'
+
+# Show/hide hidden files in Finder
+alias show="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
+alias hide="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"

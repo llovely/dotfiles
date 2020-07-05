@@ -1,0 +1,35 @@
+#
+# dotfiles/shell/macOS/source
+#
+# macOS specifc location to source additional variables, commands, and
+# files used ny one's shell.
+#
+# Author: Luis Love
+#
+
+# Homebrew Specific Formula Sources.
+(
+source "$HOME/projects/dotfiles/lib/brew.sh"
+isBrewInstalled
+)
+if [[ "$?" -eq "0" ]]; then
+	
+	#
+	# Opam Configuration (OCaml)
+	#
+	test -r /Users/luis/.opam/opam-init/init.sh && . /Users/luis/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true
+
+	#
+	# Bash Completions
+	#
+	[[ -r "$(brew --prefix)/etc/profile.d/bash_completion.sh" ]] && . "$(brew --prefix)/etc/profile.d/bash_completion.sh" > /dev/null 2>&1
+
+	#
+	# NVM 
+	#
+	if [[ -d "$HOME/.nvm" ]]; then
+		export NVM_DIR="$HOME/.nvm"
+	fi
+	[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh" # This loads nvm
+	[ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && . "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+fi

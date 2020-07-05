@@ -92,7 +92,26 @@ createLogApt() {
 
 
 createLogBrew() {
-    _createLog "$1" "$LOG_BREW"
+    local formulaDir="$LOG_DIR/$1/brew_formula"
+    local caskDir="$LOG_DIR/$1/brew_cask"
+
+    if ! _createLog "$1" "$LOG_BREW"; then
+        return 1
+    fi
+
+    # Creates logging directory for Homebrew Formula, if it doesn't exist
+    if [[ ! -d "$formulaDir" ]]; then
+        mkdir -p "$formulaDir" > /dev/null 2>&1 
+        [[ "$?" -ne "0" ]] && return 1
+    fi
+
+    # Creates logging directory for Homebrew Casks, if it doesn't exist
+    if [[ ! -d "$caskDir" ]]; then
+        mkdir -p "$caskDir" > /dev/null 2>&1 
+        [[ "$?" -ne "0" ]] && return 1
+    fi
+
+    return 0
 }
 
 
@@ -110,39 +129,44 @@ _logMessage() {
     local fileDir="$LOG_DIR/$1"
     local file="$fileDir/$2"
     local message="$3"
-    local printMessage="$4"
+    local numTabs="$4"
+    local printMessage="$5"
 
     if ! _createLog "$1" "$2"; then
         return 1
     fi
 
-    if "$printMessage"; then
-        printf "$message"
-    fi
+    local buffer=""
+    for ((i = 0; i < "$numTabs"; ++i)); do
+        buffer="$buffer    "
+    done
 
     local line=""
     while IFS= read -r line; do
         [[ ! "$line" == *\n ]] && line="$line\n"
-        printf "$(date +"%m-%d-%Y (%H:%M:%S)"): $line" >> "$file"	
+        if "$printMessage"; then
+            printf "$buffer$line"
+        fi
+        printf "$(date +"%m-%d-%Y (%H:%M:%S)"): $buffer$line" >> "$file"	
     done <<< "$message"
 }
 
 
 logApt() {
-    _logMessage "$1" "$LOG_APT" "$2" "$3"
+    _logMessage "$1" "$LOG_APT" "$2" "$3" "$4"
 }
 
 
 logBrew() {
-    _logMessage "$1" "$LOG_BREW" "$2" "$3"
+    _logMessage "$1" "$LOG_BREW" "$2" "$3" "$4"
 }
 
 
 logDotfiles() {
-    _logMessage "$1" "$LOG_DOTFILES" "$2" "$3"
+    _logMessage "$1" "$LOG_DOTFILES" "$2" "$3" "$4"
 }
 
 
 logInstall() {
-    _logMessage "$1" "$LOG_INSTALL" "$2" "$3"
+    _logMessage "$1" "$LOG_INSTALL" "$2" "$3" "$4"
 }

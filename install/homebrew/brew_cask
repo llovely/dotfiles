@@ -1,0 +1,32 @@
+#
+# dotfiles/install/brew_cask
+#
+# List of Homebrew Casks to install.
+#
+# NOTE: DO NOT PLACE COMMENTS NEXT TO SPECIFIED CASK.
+#
+# Author: Luis Love
+#
+
+###############################################################################
+#                           Programming Applications
+###############################################################################
+osxfuse
+virtualbox
+vmware-fusion
+vagrant
+vagrant-vmware-utility
+visual-studio-code
+iterm2
+xquartz
+
+
+###############################################################################
+#                           General Applications
+###############################################################################
+google-chrome
+firefox
+spotify
+slack
+discord
+skype

@@ -1,0 +1,380 @@
+#!/usr/bin/env bash
+#
+# dotfiles/bin/install
+#
+# Installs dotfiles and user's desired programs.
+#
+# Author: Luis Love
+#
+
+# source "$HOME/.dotfiles/lib/color.sh"
+source "$HOME/.dotfiles/lib/logger.sh"
+source "$HOME/.dotfiles/lib/brew.sh"
+source "$HOME/.dotfiles/lib/os.sh"
+
+# Option Flags
+silentMode=false
+invalidArg=false
+displayHelp=false
+bashProvided=false
+
+# Log Identifier
+logID=""
+
+# Minimum version of Bash required for this script to run
+declare -ri MIN_BASH_VERS=3
+
+# Default Bash Shell to be used
+defaultShell=""
+
+# Path to installation script executables
+declare -r DOTFILES_SCRIPT="$HOME/.dotfiles/bin/dotfiles"
+declare -r BREW_SCRIPT="$HOME/.dotfiles/bin/brew"
+declare -r APT_SCRIPT="$HOME/.dotfiles/bin/apt"
+
+# Status of major steps during script's installation steps
+declare -r INSTALL_STATUS_PENDING="Pending"
+declare -r INSTALL_STATUS_SUCCESS="Success"
+declare -r INSTALL_STATUS_FAILURE="Failed"
+
+packageInstallOp="$INSTALL_STATUS_PENDING"
+shellInstallOp="$INSTALL_STATUS_PENDING"
+dotfilesInstallOp="$INSTALL_STATUS_PENDING"
+
+
+usage() {
+    local script=${0##*/}
+    local file=""
+
+    echo "Usage: ./$script [-hs] [-l <log_ID>] [-b <path_to_bash>]"
+    echo
+    echo "Description:"
+    echo
+    echo "    This script will identify this machine's OS and install associated system packages, change the"
+    echo "    default shell to Bash, and install dotfiles used for program and shell configuration. Depending"
+    echo "    on one's OS, several (but not all) of the following scripts will execute:"
+    echo
+    for file in $HOME/.dotfiles/bin/*; do
+        [[ "$file" =~ .*/install$ ]] && continue
+        echo "        $file"
+    done
+    echo
+    echo "Options:"
+    echo
+    echo "    -h                  Prints this help message. If combined with other options, it will be ignored."
+    echo "    -s                  Silent Mode. No output is printed to stdout or stderr (logging is still "
+    echo "                        preserved). Returns 0 if all operations completed successfully; otherwise, 1"
+    echo "                        if partial or complete failure."
+    echo "    -l <log_ID>         Provides the log_ID; aids in identifying where the associated logged output"
+    echo "                        from unning this script is located. See below for more info."
+    echo "    -b <path_to_bash>   Provides desired Bash Shell to function as the default shell. See below for"
+    echo "                        more details."
+    echo
+    echo "Log Identifier (log_ID):"
+    echo
+    echo "    This identifier specifies which directory the logged output from running this script will be located in."
+    echo "    This option is typically used when storing the logged output from multiple scripts that conform to this"
+    echo "    style of identifier."
+    echo
+    echo "    The directory and file containing the logged output will be:"
+    echo
+    echo "        $LOG_DIR/<log_ID>/$LOG_DOTFILES"
+    echo
+    echo "    The <log_ID> must conform to the following pattern:"
+    echo
+    echo "        log_MONTH-DAY-YEAR_HOUR-MINUTE-SECOND"
+    echo
+    echo "    The extended regex representation of the above is as follows:"
+    echo
+    echo "        $VALID_LOG_ID_REGEX"
+    echo
+    echo "Notes:"
+    echo
+    echo "    If multiple '-l' or '-b' options are provided, only the last one will be used; for example:"
+    echo
+    echo "        ./$script -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
+    echo "                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    echo "                                                                           Only this one will be used"
+    echo
+    echo "        ./$script -s -b /bin/bash -b /usr/bin/bash -b /usr/local/bin/bash"
+    echo "                                                   ^^^^^^^^^^^^^^^^^^^^^^"
+    echo "                                                   Only this one will be used"
+}
+
+
+exitMessage() {
+    echo "Status of Major Installation Steps:"
+    echo "    OS Package Installations:      $packageInstallOp"
+    echo "    Changed Default Shell to Bash: $shellInstallOp"
+    echo "    Dotfile Installations:         $dotfilesInstallOp"
+    if [[ "$dotfileeInstallOp" == "$INSTALL_STATUS_SUCCESS" ]]; then
+        echo "Installation Successfully Completed."
+    else
+        echo "Installation Failed."
+    fi
+    echo "The logged output can be found at: $LOG_DIR/$logID/$LOG_INSTALL"
+}
+
+
+parseArgs() {
+    while [[ ! "$OPTIND" -gt "$#" ]]; do
+        while getopts ":hsb:" opt; do
+            case $opt in
+                s)  # Silent Mode selected
+                    silentMode=true
+                    ;;
+                b)  # Bash executable provided
+                    defaultShell="$OPTARG"
+                    bashProvided=true
+                    ;;
+                h)  # Help Message requested
+                    displayHelp=true
+                    ;;
+                *)  # Unknown Option provided
+                    invalidArg=true
+                    ;;
+            esac
+        done
+
+        # Invalid Arguments are skipped.
+        if [[ ! "$OPTIND" -gt "$#" ]]; then
+            invalidArg=true
+            (( ++OPTIND ))
+        fi
+    done
+}
+
+
+logMsg() {
+    local display=""
+
+    if ! $silentMode; then
+        display=true;
+    else
+        display=false;
+    fi
+
+    logInstall "$logID" "$1" "$2" "$display"
+}
+
+
+installScript() {
+    local output=""
+    local script="$1"
+    local message="$2"
+
+    logMsg "$message" 0
+
+    "$script" -l "$logID" 2>&1 | \
+    while IFS= read -r output; do
+        logMsg "$output" 1
+    done
+
+    if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
+        logMsg "Installation completed. (Success)\n" 1
+    else
+        logMsg "Installation did not fully complete. (Failed)\n" 1
+        return 1
+    fi
+}
+
+
+changeDefaultShell() {
+    logMsg "Attempting to change default shell to Bash...\n" 0
+
+    if "$bashProvided"; then
+        if [[ ! "$defaultShell" =~ .*/bash$ ]]; then
+            logMsg "Provided shell '$defaultShell' does not appear to be Bash. (Failed)\n" 1
+            return 1
+        fi
+    else
+        if [[ "$(OSName)" == "macOS" ]]; then
+            if isBrewInstalled && isBrewFormulaInstalled "bash"; then
+                defaultShell="/usr/local/bin/bash"
+            else 
+                logMsg "Bash was not installed using Homebrew. (Failed)\n" 1
+                return 1    
+            fi
+        elif [[ "$SHELL" =~ .*/bash$ ]]; then
+            logMsg "Default shell '$SHELL' already appears to be Bash. (Success)\n" 1
+            return 0
+        else
+            defaultShell="/bin/bash"
+        fi
+    fi
+
+    logMsg "New Default Shell: $defaultShell\n" 1
+
+    if [[ ! -e "$defaultShell" ]]; then
+        logMsg "Could not locate '$defaultShell'. (Failed)\n" 1
+        return 1
+    fi
+
+    if [[ ! -x "$defaultShell" ]]; then
+        logMsg "'$defaultShell' is not executable. (Failed)\n" 1
+        return 1
+    fi
+
+    logMsg "Appending '$defaultShell' to list of known shells in '/etc/shells'...\n" 1
+    if grep -sq "$defaultShell" /etc/shells; then
+        logMsg "'$defaultShell' already present. (Success)\n" 2
+    else
+        sudo echo "$defaultShell" >> /etc/shells > /dev/null 2>&1
+        if [[ "$?" -eq "0" ]]; then
+            logMsg "Append Complete. (Success)\n" 2
+        else
+            logMsg "Unable to append '$defaultShell'. (Failed)\n" 2
+            return 1
+        fi
+    fi
+
+    logMsg "Changing default shell to '$defaultShell'...\n" 1
+    sudo chsh -s "$defaultShell" "$USER" > /dev/null 2>&1
+    if [[ "$?" -eq "0" ]]; then
+        logMsg "'$defaultShell' is now the default shell. (Success)\n" 2
+    else
+        logMsg "Unable to change shell. (Failed)\n" 2
+        return 1
+    fi
+
+    return 0
+}
+
+
+# Verifies that Bash meets the version requirements necessary to execute the
+# contents of this script, without error.
+if [ "${BASH_VERSINFO:-0}" -lt "$MIN_BASH_VERS" ]; then
+    printf "ERROR: Bash Version 3 or higher is required, your version is " >&2
+    if [ -z "$BASH_VERSION" ]; then
+        printf "(unknown).\n" >&2
+    else
+        printf "$BASH_VERSION.\n" >&2
+    fi
+    exit 1
+fi
+
+
+###############################################################################
+#						Parse and Process Provided Options
+###############################################################################
+
+parseArgs "$@"
+
+# Ignore displaying usage info if help option is included with other options
+($silentMode || $invalidArg) && displayHelp=false
+
+# Display Help Message and exit
+if $displayHelp; then
+    usage
+    exit 1
+fi
+
+
+# Generates and verifies Log Identifier, exit if invalid
+logID="$(createLogID)"
+if ! validLogID "$logID"; then
+    if ! $silentMode; then
+        echo "ERROR: Invalid log_ID generated/provided. See usage (-h option) for correct format."
+    fi
+    exit 1;
+fi
+
+# Create the log file, exit if the file couldn't be created
+if ! createLogInstall "$logID"; then
+    if ! $silentMode; then
+        echo "ERROR: Unable to create log file '$LOG_DIR/$logID/$LOG_INSTALL'."
+    fi
+    exit 1
+fi
+
+# Invalid option / argument was provided, display Help Message and exit
+if $invalidArg; then
+    logMsg "ERROR: Invalid option/argument provided!\n" 0
+    logMsg "$(usage $0)" 0
+    exit 1
+fi
+
+
+###############################################################################
+#			       Obtain Username and Maintain Root Permissions
+###############################################################################
+
+if [[ "$EUID" -eq "0" ]]; then
+    printf "Please run as normal user.\n" >&2
+    exit 1
+fi
+
+# Asks, then maintains root permissions for the duration of this cript
+sudo true
+while true; do
+    sudo -n true
+    sleep 60
+    kill -0 "$$" || exit
+done 2>/dev/null &
+
+
+###############################################################################
+#							   Begin Installation
+###############################################################################
+
+# Verifies that the machine's OS is supported; otherwise, exits
+if ! OSsupported; then
+    logMsg "ERROR: Unsupported OS.\n" 0
+    exit 1
+fi
+
+
+# STEP #1)
+#
+# Identifies machine's OS, then executes appropriate fucntion for OS package 
+# installation.
+case "$(OSName)" in
+    "macOS") # Installs Homebrew and associated formula and casks
+            installScript "$BREW_SCRIPT" "Installing Homebrew and Formulas + Casks...\n"
+            if [[ "$?" -ne "0" ]]; then
+                packageInstallOp="$INSTALL_STATUS_FAILED"
+                logMsg "$(exitMessage)" 0
+                exit 1    
+            fi
+            ;;
+    "ubuntu") # Installs packages
+            installScript "$APT_SCRIPT" "Installing APT Packages...\n"
+            if [[ "$?" -ne "0" ]]; then
+                packageInstallOp="$INSTALL_STATUS_FAILED"
+                logMsg "$(exitMessage)" 0
+                exit 1    
+            fi
+            ;;
+    *) # Unknown OS, should never reach this point
+            logMsg "ERROR: Unknown OS encountered.\n" 0
+.           exit 1
+            ;;
+esac
+packageInstallOp="$INSTALL_STATUS_SUCCESS"
+
+
+# STEP #2)
+#
+# Change default shell to Bash
+if ! changeDefaultShell; then
+    shellInstallOp="$INSTALL_STATUS_FAILED"
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+shellInstallOp="$INSTALL_STATUS_SUCCESS"
+
+
+# STEP #3)
+#
+# Install Dotfiles
+installScript "$DOTFILES_SCRIPT" "Installing Dotfiles...\n"
+if [[ "$?" -ne "0" ]]; then
+    dotfilesInstallOp="$INSTALL_STATUS_FAILED"
+    logMsg "$(exitMessage)" 0
+    exit 1    
+fi
+dotfilesInstallOp="$INSTALL_STATUS_SUCCESS"
+
+
+logMsg "$(exitMessage)" 0
+exit 0

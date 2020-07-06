@@ -8,11 +8,7 @@
 #
 
 # If not running interactively, don't do anything.
-# 
-# Since the macOS terminal is defaults to a login shell, the first conditional
-# below is present in order to ensure that the contents of this bashrc file are
-# read given that the shell is non-interactive, in this case.
-[[ ! "$OSTYPE" =~ ^darwin* ]] && [[ "$-" != "*i*" ]] && return
+[[ "$-" != *i* ]] && return
 
 
 sourceDotfiles() {

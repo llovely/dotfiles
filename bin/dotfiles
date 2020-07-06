@@ -90,7 +90,7 @@ usage() {
 
 exitMessage() {
     echo "$operationsCompleted of $TOTAL_OPERATIONS Operations Successfully Completed."
-    echo "The last operation that failed is shown above (ff any)."
+    echo "The last operation that failed is shown above (if any)."
     echo "The logged output can be found at: $LOG_DIR/$logID/$LOG_DOTFILES"
 }
 
@@ -124,17 +124,16 @@ parseArgs() {
 }
 
 
-shouldPrint() {
-    if ! $silentMode; then
-        echo true;
-    else
-        echo false;
-    fi
-}
-
-
 logMsg() {
-    logDotfiles "$logID" "$1" "$2" "$(shouldPrint)"
+    local display=""
+
+    if ! $silentMode; then
+        display=true;
+    else
+        display=false;
+    fi
+
+    logDotfiles "$logID" "$1" "$2" "$display"
 }
 
 
@@ -260,3 +259,4 @@ done
 
 
 logMsg "$(exitMessage)" 0
+exit 0

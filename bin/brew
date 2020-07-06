@@ -114,17 +114,16 @@ parseArgs() {
 }
 
 
-shouldPrint() {
-    if ! $silentMode; then
-        echo true;
-    else
-        echo false;
-    fi
-}
-
-
 logMsg() {
-    logBrew "$logID" "$1" "$2" "$(shouldPrint)"
+    local display=""
+
+    if ! $silentMode; then
+        display=true;
+    else
+        display=false;
+    fi
+
+    logBrew "$logID" "$1" "$2" "$display"
 }
 
 
@@ -277,15 +276,15 @@ fi
 #					        Install Formulas and Casks
 ###############################################################################
 
-logMsg "Installing Homebrew Formula and Casks...\n" 0
+logMsg "Installing Homebrew Formulas and Casks...\n" 0
 
-logMsg "Installing Hombrew Formulas... (this may take a while)\n" 1
+logMsg "Installing Homebrew Formulas... (this may take a while)\n" 1
 if ! installBrewPackage 0; then
     logMsg "$(exitMessage)" 0
     exit 1
 fi
 
-logMsg "Installing Hombrew Casks... (this may take a while)\n" 1
+logMsg "Installing Homebrew Casks... (this may take a while)\n" 1
 if ! installBrewPackage 1; then
     logMsg "$(exitMessage)" 0
     exit 1

@@ -8,59 +8,41 @@
 #
 
 isBrewInstalled() {
-	return $(which -s brew)
+    which -s brew > /dev/null 2>&1
 }
 
 
 installBrew() {
-	if isBrewInstalled; then
-		return 0
-	fi
-
-	(
-	echo -ne '\n' | bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)" > /dev/null 2>&1
-	)
-	if [[ "$?" -ne 0 ]]; then
-		return 1
-	fi
-	
-	return 0
+    (
+    echo -ne '\n' | \
+    bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+    )
 }
 
 
 isBrewFormulaInstalled() {
-	if brew list | grep --quiet "^$1\$"; then
-		return 0
-	fi
-
-	return 1
+    (brew list | grep --quiet "^$1\$") > /dev/null 2>&1
 }
 
 
 installBrewFormula() {
-	if ! isBrewFormulaInstalled "$1"; then 
-		brew install "$1" 2> /dev/null 1>&2
-		return $?
-	fi
-	
-	return 2
+    if isBrewFormulaInstalled "$1"; then
+        brew upgrade --verbose "$1"
+    else
+        brew install --verbose "$1"
+    fi
 }
 
 
 isBrewCaskInstalled() {
-	if brew cask list | grep --quiet "^$1\$"; then
-		return 0
-	fi
-
-	return 1
+    (brew cask list | grep --quiet "^$1\$") > /dev/null 2>&1
 }
 
 
 installBrewCask() {
-	if ! isBrewCaskInstalled "$1"; then 
-		brew cask install "$1" > /dev/null 1>&2
-		return $?
-	fi
-
-	return 2
+    if isBrewCaskInstalled "$1"; then
+        brew cask upgrade --verbose "$1"
+    else
+        brew cask install --verbose "$1"
+    fi
 }

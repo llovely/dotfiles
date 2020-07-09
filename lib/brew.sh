@@ -2,7 +2,7 @@
 # dotfiles/lib/brew.sh
 #
 # Contains various functions for aiding in the installation and processing
-# of Homebrew formula and casks.
+# of Homebrew formulae and casks.
 #
 # Author: Luis Love
 #

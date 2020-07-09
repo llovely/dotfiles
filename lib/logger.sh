@@ -1,13 +1,18 @@
 #
 # dotfiles/lib/logger.sh
 #
-# Contains various logging functions.
+# Contains various logging functions for this project.
 #
 # Author: Luis Love
 #
 
-# Directory containing all logs from this project
+# Directory containing all logs for this project
 declare -r LOG_DIR="$HOME/.dotfiles/log"
+
+# Log directory names
+declare -r LOG_BREW_FORMULAE_DIR="brew_formulae"
+declare -r LOG_BREW_CASKS_DIR="brew_casks"
+declare -r LOG_APT_PACKAGE_DIR="apt_packages"
 
 # Log file names
 declare -r LOG_APT="apt.log"
@@ -24,6 +29,8 @@ createLogID() {
 
     [[ "$logID" == "log_" ]] && return 1
     echo "$logID"
+
+    return 0
 }
 
 
@@ -69,17 +76,15 @@ _createLog() {
 
     # Creates logging directory, if it doesn't exist
     if [[ ! -d "$fileDir" ]]; then
-        if ! mkdir -p "$fileDir"; then
-            return 1
-        fi
+        mkdir -p "$fileDir" > /dev/null 2>&1 
+        [[ "$?" -ne "0" ]] && return 1
     fi
     
     # Creates log file, if it doesn't exist
     if [[ ! -f "$file" ]]; then
         rm -rf "$file"
-        if ! (touch "$file" && chmod u+rw "$file"); then
-            return 1
-        fi
+        (touch "$file" && chmod u+rw "$file") > /dev/null 2>&1 
+        [[ "$?" -ne "0" ]] && return 1
     fi
 
     return 0
@@ -92,14 +97,14 @@ createLogApt() {
 
 
 createLogBrew() {
-    local formulaDir="$LOG_DIR/$1/brew_formula"
-    local caskDir="$LOG_DIR/$1/brew_cask"
+    local formulaDir="$LOG_DIR/$1/$LOG_BREW_FORMULAE_DIR"
+    local caskDir="$LOG_DIR/$1/$LOG_BREW_CASKS_DIR"
 
     if ! _createLog "$1" "$LOG_BREW"; then
         return 1
     fi
 
-    # Creates logging directory for Homebrew Formula, if it doesn't exist
+    # Creates logging directory for Homebrew Formulae, if it doesn't exist
     if [[ ! -d "$formulaDir" ]]; then
         mkdir -p "$formulaDir" > /dev/null 2>&1 
         [[ "$?" -ne "0" ]] && return 1
@@ -132,18 +137,20 @@ _logMessage() {
     local numTabs="$4"
     local printMessage="$5"
 
-    if ! _createLog "$1" "$2"; then
+    if ! _logExists "$1" "$2"; then
         return 1
     fi
 
+    # Indicates how much indentation will occur when displaying message.
     local buffer=""
     for ((i = 0; i < "$numTabs"; ++i)); do
         buffer="$buffer    "
     done
-
+    
     local line=""
     while IFS= read -r line; do
         [[ ! "$line" == *\n ]] && line="$line\n"
+
         if "$printMessage"; then
             printf "$buffer$line"
         fi

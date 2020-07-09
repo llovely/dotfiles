@@ -6,114 +6,115 @@
 # Author: Luis Love
 #
 
-# Ubuntu Supported
-declare -r UBUNTU_NAME="ubuntu"
-declare -r SUPPORTED_UBUNTU="Ubuntu"
-
-# macOS Supported
-declare -r MACOS_NAME="macOS"
-declare -r SUPPORTED_MACOS="$MACOS_NAME"
-
-# Unknown OS Criteria
-declare -r UNKNOWN_OS="(unknownOS)"
-declare -r UNKNOWN_OS_VERS="(unknownVersion)"
-declare -r UNKNOWN_OS_SUPPORT="(unknownSupport)"
-
-# OS Classifications
-declare -r OS_TYPE_MACOS="$MACOS_NAME"
-declare -r OS_TYPE_LINUX="linux"
-declare -r OS_TYPE_UNKNOWN="$UNKNOWN_OS"
+# Supported OS
+declare -r OS_MACOS_NAME="macOS"
+declare -r OS_UBUNTU_NAME="ubuntu"
+declare -r OS_DEBIAN_NAME="debian"
 
 
 _OSInfo() {
-    local os=""
-    local version=""
-    local support=""
+    local macVersion=""
+    local output=""
 
     case "$OSTYPE" in
         darwin*) # OS is macOS
-                os="$MACOS_NAME"
-                version="$(sw_vers -productVersion 2> /dev/null)"
-                ;;
+            macVersion="$(sw_vers -productVersion 2> /dev/null)"
+            output="${OS_MACOS_NAME}_${OS_MACOS_NAME}_${OS_MACOS_NAME} ${macVersion}_${macVersion}"
+            ;;
         linux*) # OS is some Linux Distro
-                IFS=" " read os version support <<< "$(lsb_release -sd 2> /dev/null)"
-                ;;
+            output="$(
+                        [[ ! -f /etc/os-release ]] && exit 1
+                        source /etc/os-release
+                        echo "${ID}_${ID_LIKE}_${PRETTY_NAME}_${VERSION_ID}_${VERSION_CODENAME}"
+                    )"
+            [[ "$?" -ne 0 ]] && return 1
+            ;;
         *) # Unknown OS
-                ;;
+            return 1
+            ;;
     esac
 
-    [[ "$os" == "" ]] && os="$UNKNOWN_OS"
-    [[ "$version" == "" ]] && version="$UNKNOWN_OS_VERS"
-    [[ "$support" == "" ]] && support="$UNKNOWN_OS_SUPPORT"
+    echo "$output"
+    return 0
+}
 
-    echo "${os}_${version}_${support}"
+
+OSInfo() {
+    local id=""
+    local idLike=""
+    local prettyName=""
+    local version=""
+    local codename=""
+    local unknown="____"
+
+    IFS="_" read id idLike prettyName version codename <<< "$(_OSInfo 2> /dev/null)"
+
+    [[ -z "$id" ]] && id="$unknown"
+    [[ -z "$idLike" ]] && idLike="$unknown"
+    [[ -z "$prettyName" ]] && prettyName="$unknown"
+    [[ -z "$version" ]] && version="$unknown"
+    [[ -z "$codename" ]] && codename="$unknown"
+
+    echo "ID:          $id"
+    echo "ID Like:     $idLike"
+    echo "Description: $prettyName"
+    echo "Version:     $version"
+    echo "Codename:    $codename"
 }
 
 
 OSsupported() {
     local os=""
-    local version=""
-    local support=""
+    local id=""
+    local idLike=""
+    local rest=""
+    
+    IFS="_" read id idLike rest <<< "$(_OSInfo 2> /dev/null)"
 
-    IFS="_" read os version support <<< "$(_OSInfo 2> /dev/null)"
-
-    case "$os" in
-        "$SUPPORTED_MACOS")
-            return 0
-            ;;
-        "$SUPPORTED_UBUNTU")
-            return 0
-            ;;
-        *)  # Invalid OS
-            ;;
-    esac
+    for os in "$OS_MACOS_NAME" "$OS_UBUNTU_NAME" "$OS_DEBIAN_NAME"; do
+        [[ "$os" == "$id" || "$os" == "$idLike" ]] && return 0 
+    done
 
     return 1
 }
 
 
 OSName() {
-    local os=""
-    local version=""
-    local support=""
+    local id=""
+    local idLike=""
+    local prettyName=""
+    local rest=""
 
-    IFS="_" read os version support <<< "$(_OSInfo 2> /dev/null)"
+    IFS="_" read id idLike prettyName rest <<< "$(_OSInfo 2> /dev/null)"
 
-    if OSsupported; then
-        case "$os" in
-            "$SUPPORTED_MACOS")
-                echo "$MACOS_NAME"
-                return 0
-                ;;
-            "$SUPPORTED_UBUNTU")
-                echo "$UBUNTU_NAME"
-                return 0
-                ;;
-            *)  # Invalid OS, shouldn't get to this case
-                ;;
-        esac    
+    if [[ ! -z "$prettyName" ]]; then
+        echo "$prettyName"
+        return 0
     fi
 
-    echo "$os"
+    return 1
 }
 
 
 OSType() {
-    local os=""
+    local id=""
+    local idLike=""
+    local rest=""
 
-    case "$OSTYPE" in
-        darwin*) # OS is macOS
-                os="$OS_TYPE_MACOS"
-                ;;
-        linux*) # OS is some Linux Distro
-                os="$OS_TYPE_LINUX"
-                ;;
-        *) # Unknown OS
-                os="$OS_TYPE_UNKNOWN"
-                ;;
-    esac 
+    IFS="_" read id idLike rest <<< "$(_OSInfo 2> /dev/null)"
 
-    echo "$os"
+    if [[ "$id" == "$OS_MACOS_NAME" || "$idLike" == "$OS_MACOS_NAME" ]]; then
+        echo "$OS_MACOS_NAME"
+        return 0
+    elif [[ "$id" == "$OS_UBUNTU_NAME" || "$idLike" == "$OS_UBUNTU_NAME" ]]; then 
+        echo "$OS_UBUNTU_NAME"
+        return 0
+    elif [[ "$id" == "$OS_DEBIAN_NAME" || "$idLike" == "$OS_DEBIAN_NAME" ]]; then
+        echo "$OS_DEBIAN_NAME"
+        return 0
+    fi
+
+    return 1
 }
 
 

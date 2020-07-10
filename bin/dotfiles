@@ -234,7 +234,7 @@ fi
 # Creates a private dotfile in the HOME directory. This is intended to store
 # private commands and credentials. The contents of this file will not be
 # commited, and is sourced onlh by the bashrc file.
-logMsg "Creating file '${PRIVATE_DOTFILE}'...\n" 0
+logMsg "Creating private dotfile '${PRIVATE_DOTFILE}'...\n" 0
 
 if [[ -f "$PRIVATE_DOTFILE" ]]; then
     logMsg "File already exists. (Success)\n" 1
@@ -244,8 +244,10 @@ else
         logMsg "Removing existing '${PRIVATE_DOTFILE}'...\n" 1
     fi
     rm -rf "${PRIVATE_DOTFILE}" > /dev/null 2>&1
-    if [[ -e "$PRIVATE_DOTFILE" ]]; then
-        logMsg "Failed to remove. (Failed)" 2
+    if [[ ! -e "$PRIVATE_DOTFILE" ]]; then
+        logMsg "File removed. (Success)\n" 2
+    else
+        logMsg "Failed to remove. (Failed)\n" 2
         logMsg "$(exitMessage)" 0
         exit 1
     fi

@@ -2,13 +2,14 @@
 #
 # dotfiles/bin/brew
 #
-# Installs Homebrew and desired formulas and casks.
+# Installs Homebrew and desired formulae and casks.
 #
 # Author: Luis Love
 #
 
-source "$HOME/.dotfiles/lib/logger.sh"
-source "$HOME/.dotfiles/lib/brew.sh"
+source "${HOME}/.dotfiles/lib/logger.sh"
+source "${HOME}/.dotfiles/lib/os.sh"
+source "${HOME}/.dotfiles/lib/brew.sh"
 
 # Option Flags
 silentMode=false
@@ -22,26 +23,26 @@ logID=""
 # Minimum version of Bash required for this script to run
 declare -ri MIN_BASH_VERS=3
 
-# Location of Homebrew Formulas and Casks to be installed
-declare -r BREW_FORMULA_FILE="$HOME/.dotfiles/install/homebrew/brew_formula"
-declare -r BREW_CASK_FILE="$HOME/.dotfiles/install/homebrew/brew_cask"
+# Location of Homebrew Formulae and Casks to be installed
+declare -r BREW_FORMULAE_FILE="${HOME}/.dotfiles/install/homebrew/brew_formulae"
+declare -r BREW_CASKS_FILE="${HOME}/.dotfiles/install/homebrew/brew_casks"
 
 
 usage() {
     local script=${0##*/}
-    echo "Usage: ./$script [-hs] [-l <log_ID>]"
+    echo "Usage: ./${script} [-hs] [-l <log_ID>]"
     echo
     echo "Description:"
     echo
-    echo "    This script will install Homebrew and specified Homebrew Formulas and Casks. Formulas and Casks"
+    echo "    This script will install Homebrew and specified Homebrew Formulae and Casks. Formulae and Casks"
     echo "    are specified using the following files (see files for formating):"
     echo
-    echo "        Formulas: $BREW_FORMULA_FILE"
-    echo "           Casks: $BREW_CASK_FILE"
+    echo "        Formulae: ${BREW_FORMULAE_FILE}"
+    echo "           Casks: ${BREW_CASK_FILE}"
     echo
     echo "Options:"
     echo
-    echo "    -h            Prints this help message. If combined with other options, it will be ignored."
+    echo "    -h            Prints this help message. If combined with other options, it will override them all."
     echo "    -s            Silent Mode. No output is printed to stdout or stderr (logging is still preserved)."
     echo "                  Returns 0 if all operations completed successfully; otherwise, 1 if partial or"
     echo "                  complete failure."
@@ -56,7 +57,7 @@ usage() {
     echo
     echo "    The directory and file containing the logged output will be:"
     echo
-    echo "        $LOG_DIR/<log_ID>/$LOG_DOTFILES"
+    echo "        ${LOG_DIR}/<log_ID>/${LOG_DOTFILES}"
     echo
     echo "    The <log_ID> must conform to the following pattern:"
     echo
@@ -64,13 +65,13 @@ usage() {
     echo
     echo "    The extended regex representation of the above is as follows:"
     echo
-    echo "        $VALID_LOG_ID_REGEX"
+    echo "        ${VALID_LOG_ID_REGEX}"
     echo
     echo "Notes:"
     echo
     echo "    If multiple '-l' options are provided, only the last log_ID will be used; for example:"
     echo
-    echo "        ./$script -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
+    echo "        ./${script} -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
     echo "                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^"
     echo "                                                                            Only this log_ID will be used"
 }
@@ -79,16 +80,16 @@ usage() {
 exitMessage() {
     echo "The last operation that failed is shown above (if any)."
     echo "The logged output can be found at: "
-    echo "    $LOG_DIR/$logID/$LOG_BREW"
-    echo "    $LOG_DIR/$logID/brew_cask"
-    echo "    $LOG_DIR/$logID/brew_formula"
+    echo "    ${LOG_DIR}/${logID}/${LOG_BREW}"
+    echo "    ${LOG_DIR}/${logID}/${LOG_BREW_FORMULAE_DIR}"
+    echo "    ${LOG_DIR}/${logID}/${LOG_BREW_CASKS_DIR}"
 }
 
 
 parseArgs() {
     while [[ ! "$OPTIND" -gt "$#" ]]; do
         while getopts ":hsl:" opt; do
-            case $opt in
+            case "$opt" in
                 s)  # Silent Mode selected
                     silentMode=true
                     ;;
@@ -117,7 +118,7 @@ parseArgs() {
 logMsg() {
     local display=""
 
-    if ! $silentMode; then
+    if ! "$silentMode"; then
         display=true;
     else
         display=false;
@@ -127,78 +128,198 @@ logMsg() {
 }
 
 
-installBrewPackage() {
-    local -i packageType="$1"
-    local package=""
-    local packageLog=""
-    local packageLogFile=""
-    local packageFile=""
-    local installCmd=""
+installBrewFormulae() {
+    local formula=""
+    local logFile=""
+    local output=""
+    local -i formulaCount=0
 
-    # Determines if installing Formulas or Casks
-    case "$packageType" in
-        0)  # Install Homebrew Formulas
-            packageLog="$LOG_DIR/$logID/brew_formula"
-            packageFile="$BREW_FORMULA_FILE"
-            installCmd="brew install"
-            ;;
-        1)  # Install Homebrew Casks
-            packageLog="$LOG_DIR/$logID/brew_cask"
-            packageFile="$BREW_CASK_FILE"
-            installCmd="brew cask install"
-            ;;
-        *)  # Invalid Argument
-            logMsg "Invalid argument provied to '$FUNCNAME', expected 0 or 1.\n" 2
-            return 1
-            ;;
-    esac
+    logMsg "Installing Homebrew Formulae... (this may take a while)\n" 1
 
-    # Process Formulas/Casks for installation
-    while IFS= read -r package; do
+    if [[ ! -f "$BREW_FORMULAE_FILE" ]]; then
+        logMsg "Unable to locate '${BREW_FORMULAE_FILE}' file. (Failed)\n" 2
+        return 1
+    fi
+
+    # Process Formulae for installation
+    while IFS= read -r formula; do
+
         # Ignore blank lines
-        if [[ "$package" =~ ^[[:space:]]*$ ]]; then
+        if [[ "$formula" =~ ^[[:space:]]*$ ]]; then
             continue
         fi
+        (( ++formulaCount ))
 
-        logMsg "Installing '$package'...\n" 2
+        logMsg "Installing '${formula}' Formula...\n" 2
 
-        # Creates log file for specified Formula/Cask
-        packageLogFile="$packageLog/$package.log"
-        rm -rf "$packageLogFile"
-        if ! (touch "$packageLogFile" && chmod u+rw "$packageLogFile") > /dev/null 2>&1; then
-            logMsg "Unable to create log for this cask. (Failed)\n" 3
+        # Log file for specified formula
+        logFile="${LOG_DIR}/${logID}/${LOG_BREW_FORMULAE_DIR}/${formula}.log"
+
+        # Removes existing formula log file, if present
+        if [[ -e "$logFile" ]]; then
+            logMsg "Removing existing log file '${logFile}'...\n" 3
+            rm -rf "${logFile}" > /dev/null 2>&1
+            if [[ ! -e "$logFile" ]]; then
+                logMsg "Existing log removed. (Success)\n" 4
+            else
+                logMsg "Failed to remove existing log. (Failed)\n" 4
+                return 1
+            fi
+        fi
+
+        # Creates formula log file
+        logMsg "Creating log file for '${formula}' formula...\n" 3
+        (touch "${logFile}" && chmod u+rw "${logFile}") > /dev/null 2>&1
+        if [[ "$?" -eq "0" ]]; then
+            logMsg "Log file created. (Success)\n" 4
+        else
+            logMsg "Unable to create log for this formula. (Failed)\n" 4
             return 1
         fi
-        logMsg "The logged output can be found at: $packageLogFile\n" 3
 
-        # Invokes proper installation command, depending if its a Formula or Cask
-        if [[ "$packageType" -eq "0" ]] && isBrewFormulaInstalled "$package"; then
-            logMsg "'$package' already insatlled, updating...\n" 3
-            brew upgrade "$package" --verbose > "$packageLogFile" 2>&1
-        else
-            ($installCmd --verbose "$package" > "$packageLogFile" 2>&1)
-        fi
+        logMsg "Specific log output for '${formula}' can be found at: ${logFile}\n" 3
+
+        # Install/Update Formula
+        isBrewFormulaInstalled "${formula}" > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
+            logMsg "'${formula}' already installed, upgrading...\n" 3
+        fi
+        installBrewFormula "${formula}" 2>&1 | tee "${logFile}" | \
+        while IFS= read -r output; do
+            logMsg "${output}" 4
+        done
+
+        if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
             logMsg "Installation Completed. (Success)\n" 3
         else
             logMsg "Installation Failed. (Failed)\n" 3
             return 1
         fi
-    done < <(grep -o '^[^#]*' $packageFile) # Reads each formula/cask from the file
+    done < <(grep -o '^[^#]*' "${BREW_FORMULAE_FILE}") # Reads each formula by line
+
+
+    if [[ "$formulaCount" -eq "0" ]]; then
+        logMsg "0 Formulae were found in '${BREW_FORMULAE_FILE}' file. (Success)\n" 2
+    fi
+
+    return 0
 }
 
 
-# Verifies that Bash meets the version requirements necessary to execute the
-# contents of this script, without error.
+installBrewCasks() {
+    local cask=""
+    local logFile=""
+    local output=""
+    local -i caskCount=0
+
+    logMsg "Installing Homebrew Casks... (this may take a while)\n" 1
+
+    if [[ ! -f "$BREW_CASKS_FILE" ]]; then
+        logMsg "Unable to locate '${BREW_CASKS_FILE}' file. (Failed)\n" 2
+        return 1
+    fi
+
+    # Process Casks for installation
+    while IFS= read -r cask; do
+
+        # Ignore blank lines
+        if [[ "$cask" =~ ^[[:space:]]*$ ]]; then
+            continue
+        fi
+        (( ++caskCount ))
+
+        logMsg "Installing '${cask}' Cask...\n" 2
+
+        # Log file for specified cask
+        logFile="${LOG_DIR}/${logID}/${LOG_BREW_CASKS_DIR}/${cask}.log"
+
+        # Removes existing cask log file, if present
+        if [[ -e "$logFile" ]]; then
+            logMsg "Removing existing log file '${logFile}'...\n" 3
+            rm -rf "${logFile}" > /dev/null 2>&1
+            if [[ ! -e "$logFile" ]]; then
+                logMsg "Existing log removed. (Success)\n" 4
+            else
+                logMsg "Failed to remove existing log. (Failed)\n" 4
+                return 1
+            fi
+        fi
+
+        # Creates cask log file
+        logMsg "Creating log file for '${cask}' cask...\n" 3
+        (touch "${logFile}" && chmod u+rw "${logFile}") > /dev/null 2>&1
+        if [[ "$?" -eq "0" ]]; then
+            logMsg "Log file created. (Success)\n" 4
+        else
+            logMsg "Unable to create log for this cask. (Failed)\n" 4
+            return 1
+        fi
+
+        logMsg "Specific log output for '${cask}' can be found at: ${logFile}\n" 3
+
+        # Install/Update Cask
+        isBrewCaskInstalled "${cask}" > /dev/null 2>&1
+        if [[ "$?" -eq "0" ]]; then
+            logMsg "'${cask}' already installed, upgrading...\n" 3
+        fi
+        installBrewCask "${cask}" 2>&1 | tee "${logFile}" | \
+        while IFS= read -r output; do
+            logMsg "${output}" 4
+        done
+
+        if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
+            logMsg "Installation Completed. (Success)\n" 3
+        else
+            logMsg "Installation Failed. (Failed)\n" 3
+            return 1
+        fi
+    done < <(grep -o '^[^#]*' "${BREW_CASKS_FILE}") # Reads each cask by line
+
+
+    if [[ "$caskCount" -eq "0" ]]; then
+        logMsg "0 Casks were found in '${BREW_CASKS_FILE}' file. (Success)\n" 2
+    fi
+
+    return 0
+}
+
+
+###############################################################################
+#			         Verifies Bash is Version 3 or Higher
+###############################################################################
+
 if [ "${BASH_VERSINFO:-0}" -lt "$MIN_BASH_VERS" ]; then
     printf "ERROR: Bash Version 3 or higher is required, your version is " >&2
     if [ -z "$BASH_VERSION" ]; then
         printf "(unknown).\n" >&2
     else
-        printf "$BASH_VERSION.\n" >&2
+        printf "${BASH_VERSION}.\n" >&2
     fi
     exit 1
 fi
+
+
+###############################################################################
+#			         Ensures Script IS NOT run using SUDO
+###############################################################################
+
+if [[ ! -z "$SUDO_USER" ]]; then
+    echo "ERROR: Don't execute this script with sudo." >&2
+    exit 1
+fi
+
+
+###############################################################################
+#			            Maintain Root Permissions
+###############################################################################
+
+# Asks, then maintains root permissions for the duration of this script
+sudo true
+while true; do
+    sudo -n true
+    sleep 60
+    kill -0 "$$" || exit
+done 2>/dev/null &
 
 
 ###############################################################################
@@ -207,23 +328,20 @@ fi
 
 parseArgs "$@"
 
-# Ignore displaying usage info if help option is included with other options
-($silentMode || $invalidArg || $logProvided) && displayHelp=false
-
 # Display Help Message and exit
-if $displayHelp; then
+if "$displayHelp"; then
     usage
     exit 1
 fi
 
 # Generate Log Identifier, if one hasn't already been provided
-if ! $logProvided; then
+if ! "$logProvided"; then
     logID="$(createLogID)"
 fi
 
 # Verify Log Identifier, exit if invalid
 if ! validLogID "$logID"; then
-    if ! $silentMode; then
+    if ! "$silentMode"; then
         echo "ERROR: Invalid log_ID generated/provided. See usage (-h option) for correct format."
     fi
     exit 1;
@@ -231,16 +349,16 @@ fi
 
 # Create the log file, exit if the file couldn't be created
 if ! createLogBrew "$logID"; then
-    if ! $silentMode; then
-        echo "ERROR: Unable to create log file '$LOG_DIR/$logID/$LOG_BREW'."
+    if ! "$silentMode"; then
+        echo "ERROR: Unable to create log file '${LOG_DIR}/${logID}/${LOG_BREW}'."
     fi
     exit 1
 fi
 
 # Invalid option / argument was provided, display Help Message and exit
-if $invalidArg; then
+if "$invalidArg"; then
     logMsg "ERROR: Invalid option/argument provided!\n" 0
-    logMsg "$(usage $0)" 0
+    logMsg "$(usage ${0})" 0
     exit 1
 fi
 
@@ -249,12 +367,26 @@ fi
 #								Install Homebrew
 ###############################################################################
 
+# Verifies that the system's OS is supported; otherwise, exits
+if ! OSsupported; then
+    logMsg "ERROR: Unsupported OS.\n" 0
+    logMsg "OS Information\n" 0
+    logMsg "==============\n" 0
+    logMsg "$(OSInfo)" 0
+    exit 1
+fi
+
 logMsg "Installing Homebrew... (this may take a while)\n" 0
 
 if isBrewInstalled; then
     logMsg "Homebrew already installed. Updating... (this may take a while)\n" 1
-    brew update > /dev/null 2>&1
-    if [[ "$?" -eq "0" ]]; then
+
+    updateBrew 2>&1 | \
+    while IFS= read -r output; do
+        logMsg "${output}" 2
+    done
+
+    if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
         logMsg "Update succeeded. (Success)" 1
     else
         logMsg "Update Failed. (Failed)" 1
@@ -262,7 +394,12 @@ if isBrewInstalled; then
         exit 1
     fi
 else
-    if installBrew; then
+    installBrew 2>&1 | \
+    while IFS= read -r output; do
+        logMsg "${output}" 1
+    done
+
+    if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
         logMsg "Installation Completed. (Success)" 1
     else
         logMsg "Installation Failed. (Failed)" 1
@@ -273,19 +410,17 @@ fi
 
 
 ###############################################################################
-#					        Install Formulas and Casks
+#					        Install Formulae and Casks
 ###############################################################################
 
-logMsg "Installing Homebrew Formulas and Casks...\n" 0
+logMsg "Installing Homebrew Formulae and Casks...\n" 0
 
-logMsg "Installing Homebrew Formulas... (this may take a while)\n" 1
-if ! installBrewPackage 0; then
+if ! installBrewFormulae; then
     logMsg "$(exitMessage)" 0
     exit 1
 fi
 
-logMsg "Installing Homebrew Casks... (this may take a while)\n" 1
-if ! installBrewPackage 1; then
+if ! installBrewCasks; then
     logMsg "$(exitMessage)" 0
     exit 1
 fi

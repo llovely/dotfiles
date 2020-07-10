@@ -2,13 +2,25 @@
 #
 # dotfiles/bin/dotfiles
 #
-# Installs relevant dotfiles in the user's $HOME directory using symbolic
-# links.
+# Installs relevant dotfiles in your HOME directory.
+#
+# Symbolic Links created for:
+#   - ~/.bash_profile
+#   - ~/.bashrc
+#   - ~/.inputrc
+#   - ~/.vim/
+#   - ~/.vimrc
+#
+# Copied/created dotfiles:
+#   - ~/.bashrc.local (created file sourced by ~/.bashrc, not under version control.
+#                      Keep private credentials, commands, paths, etc. in here.)
+#   - ~/.gitconfig (copied)
 #
 # Author: Luis Love
 #
 
-source "$HOME/.dotfiles/lib/logger.sh"
+source "${HOME}/.dotfiles/lib/logger.sh"
+source "${HOME}/.dotfiles/lib/os.sh"
 
 # Option Flags
 silentMode=false
@@ -24,36 +36,35 @@ declare -ri MIN_BASH_VERS=3
 
 # Number of operations necessary to install all dotfiles
 declare -i operationsCompleted=0
-declare -ri TOTAL_OPERATIONS=7
+declare -ri TOTAL_OPERATIONS=8
 
 # Dotfiles and corresponding directories
-DOTFILES_DIR="$HOME/.dotfiles/shell"
-CONFIG_DOTFILES_DIR="$HOME/.dotfiles/config"
-PRIVATE_DOTFILE="private"
+DOTFILES_DIR="${HOME}/.dotfiles/shell"
+CONFIG_DOTFILES_DIR="${HOME}/.dotfiles/config"
+PRIVATE_DOTFILE="${HOME}/.bashrc.local"
 declare -a DOTFILES=( "bash_profile" \
-                      "bashrc" \
-                      "$PRIVATE_DOTFILE" )
+                      "bashrc" )
 declare -a CONFIG_DOTFILES=( "inputrc" \
-                             "vimrc" \
-                             "git/gitconfig" )
+                             "vim" \
+                             "vim/vimrc" )
 
 
 usage() {
     local script=${0##*/}
-    echo "Usage: ./$script [-hs] [-l <log_ID>]"
+    echo "Usage: ./${script} [-hs] [-l <log_ID>]"
     echo
     echo "Description:"
     echo
-    echo "    This script will install/overwrite various dotfiles in one's \$HOME directory, '$HOME'. If present, the"
+    echo "    This script will install/overwrite various dotfiles in one's \$HOME directory, '${HOME}'. If present, the"
     echo "    following dotfiles will be overwritten with symbolic links:"
     echo
     for file in "${DOTFILES[@]}" "${CONFIG_DOTFILES[@]}"; do
-        echo "        $HOME/.${file##*/}"
+        echo "        ${HOME}/.${file##*/}"
     done
     echo
     echo "Options:"
     echo
-    echo "    -h            Prints this help message. If combined with other options, it will be ignored."
+    echo "    -h            Prints this help message. If combined with other options, it will override them all."
     echo "    -s            Silent Mode. No output is printed to stdout or stderr (logging is still preserved)."
     echo "                  Returns 0 if all operations completed successfully; otherwise, 1 if partial or"
     echo "                  complete failure."
@@ -68,7 +79,7 @@ usage() {
     echo
     echo "    The directory and file containing the logged output will be:"
     echo
-    echo "        $LOG_DIR/<log_ID>/$LOG_DOTFILES"
+    echo "        ${LOG_DIR}/<log_ID>/${LOG_DOTFILES}"
     echo
     echo "    The <log_ID> must conform to the following pattern:"
     echo
@@ -76,29 +87,33 @@ usage() {
     echo
     echo "    The extended regex representation of the above is as follows:"
     echo
-    echo "        $VALID_LOG_ID_REGEX"
+    echo "        ${VALID_LOG_ID_REGEX}"
     echo
     echo "Notes:"
     echo
     echo "    If multiple '-l' options are provided, only the last log_ID will be used; for example:"
     echo
-    echo "        ./$script -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
+    echo "        ./${script} -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
     echo "                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^"
     echo "                                                                            Only this log_ID will be used"
 }
 
 
 exitMessage() {
-    echo "$operationsCompleted of $TOTAL_OPERATIONS Operations Successfully Completed."
-    echo "The last operation that failed is shown above (if any)."
-    echo "The logged output can be found at: $LOG_DIR/$logID/$LOG_DOTFILES"
+    echo "${operationsCompleted} of ${TOTAL_OPERATIONS} operations successfully completed."
+    if [[ "$operationsCompleted" -eq "$TOTAL_OPERATIONS" ]]; then
+        echo "Dotfiles installation successfully completed."
+    else
+        echo "Dotfiles installation DID NOT successfully complete."
+    fi
+    echo "The logged output can be found at: ${LOG_DIR}/${logID}/${LOG_DOTFILES}"
 }
 
 
 parseArgs() {
     while [[ ! "$OPTIND" -gt "$#" ]]; do
         while getopts ":hsl:" opt; do
-            case $opt in
+            case "$opt" in
                 s)  # Silent Mode selected
                     silentMode=true
                     ;;
@@ -127,7 +142,7 @@ parseArgs() {
 logMsg() {
     local display=""
 
-    if ! $silentMode; then
+    if ! "$silentMode"; then
         display=true;
     else
         display=false;
@@ -137,15 +152,27 @@ logMsg() {
 }
 
 
-# Verifies that Bash meets the version requirements necessary to execute the
-# contents of this script, without error.
+###############################################################################
+#			         Verifies Bash is Version 3 or Higher
+###############################################################################
+
 if [ "${BASH_VERSINFO:-0}" -lt "$MIN_BASH_VERS" ]; then
     printf "ERROR: Bash Version 3 or higher is required, your version is " >&2
     if [ -z "$BASH_VERSION" ]; then
         printf "(unknown).\n" >&2
     else
-        printf "$BASH_VERSION.\n" >&2
+        printf "${BASH_VERSION}.\n" >&2
     fi
+    exit 1
+fi
+
+
+###############################################################################
+#			         Ensures Script IS NOT run using SUDO
+###############################################################################
+
+if [[ ! -z "$SUDO_USER" ]]; then
+    echo "ERROR: Don't execute this script with sudo." >&2
     exit 1
 fi
 
@@ -156,23 +183,20 @@ fi
 
 parseArgs "$@"
 
-# Ignore displaying usage info if help option is included with other options
-($silentMode || $invalidArg || $logProvided) && displayHelp=false
-
 # Display Help Message and exit
-if $displayHelp; then
+if "$displayHelp"; then
     usage
     exit 1
 fi
 
 # Generate Log Identifier, if one hasn't already been provided
-if ! $logProvided; then
+if ! "$logProvided"; then
     logID="$(createLogID)"
 fi
 
 # Verify Log Identifier, exit if invalid
 if ! validLogID "$logID"; then
-    if ! $silentMode; then
+    if ! "$silentMode"; then
         echo "ERROR: Invalid log_ID generated/provided. See usage (-h option) for correct format."
     fi
     exit 1;
@@ -180,16 +204,16 @@ fi
 
 # Create the log file, exit if the file couldn't be created
 if ! createLogDotfiles "$logID"; then
-    if ! $silentMode; then
-        echo "ERROR: Unable to create log file '$LOG_DIR/$logID/$LOG_DOTFILES'."
+    if ! "$silentMode"; then
+        echo "ERROR: Unable to create log file '${LOG_DIR}/${logID}/${LOG_DOTFILES}'."
     fi
     exit 1
 fi
 
 # Invalid option / argument was provided, display Help Message and exit
-if $invalidArg; then
+if "$invalidArg"; then
     logMsg "ERROR: Invalid option/argument provided!\n" 0
-    logMsg "$(usage $0)" 0
+    logMsg "$(usage ${0})" 0
     exit 1
 fi
 
@@ -198,60 +222,120 @@ fi
 #								Install Dotfiles
 ###############################################################################
 
-# Creates a 'private' file, intended to store private commands and credentials.
-# The contents of this file will not be commited, and is sourced onlh by the
-# bashrc file.
-logMsg "Creating file '$DOTFILES_DIR/$PRIVATE_DOTFILE'...\n" 0
-if [[ -f "$DOTFILES_DIR/$PRIVATE_DOTFILE" ]]; then
+# Verifies that the system's OS is supported; otherwise, exits
+if ! OSsupported; then
+    logMsg "ERROR: Unsupported OS.\n" 0
+    logMsg "OS Information\n" 0
+    logMsg "==============\n" 0
+    logMsg "$(OSInfo)" 0
+    exit 1
+fi
+
+# Creates a private dotfile in the HOME directory. This is intended to store
+# private commands and credentials. The contents of this file will not be
+# commited, and is sourced onlh by the bashrc file.
+logMsg "Creating file '${PRIVATE_DOTFILE}'...\n" 0
+
+if [[ -f "$PRIVATE_DOTFILE" ]]; then
     logMsg "File already exists. (Success)\n" 1
     (( ++operationsCompleted ))
 else
-    rm -rf "$DOTFILES_DIR/$PRIVATE_DOTFILE"
-    (
-    cat <<-\__EOF__
-        #!/usr/bin/env bash
-        #
-        # dotfiles/shell/private
-        #
-        # File intended to store the user's private commands and credentials.
-        # The contents of this file will not be commited, and is sourced only
-        # by the bashrc file.
-
-__EOF__
-    ) > "$DOTFILES_DIR/$PRIVATE_DOTFILE"
-    if [[ ! -f "$DOTFILES_DIR/$PRIVATE_DOTFILE" ]]; then
-        logMsg "Failed to create '$DOTFILES_DIR/$PRIVATE_DOTFILE'. (Failed)\n" 1
+    if [[ -e "$PRIVATE_DOTFILE" ]]; then
+        logMsg "Removing existing '${PRIVATE_DOTFILE}'...\n" 1
+    fi
+    rm -rf "${PRIVATE_DOTFILE}" > /dev/null 2>&1
+    if [[ -e "$PRIVATE_DOTFILE" ]]; then
+        logMsg "Failed to remove. (Failed)" 2
         logMsg "$(exitMessage)" 0
         exit 1
-    else
-        logMsg "Log created. (Success)\n" 1
+    fi
+
+    # Creates the 'private' file
+    cat <<-__EOF__ > "${PRIVATE_DOTFILE}" 2>&1
+	#
+	# File intended to store the user's private commands and credentials.
+	# The contents of this file will not be commited, and is sourced only
+	# by the ~/.bashrc file.
+	#
+
+	__EOF__
+    if [[ -f "$PRIVATE_DOTFILE" ]]; then
+        logMsg "File created. (Success)\n" 1
         (( ++operationsCompleted ))
+    else
+        logMsg "File not created. (Failed)\n" 1
+        logMsg "$(exitMessage)" 0
+        exit 1
     fi
 fi
 
-logMsg "Creating Symbolic Links to relevant dotfiles in directory '$HOME'...\n" 0
+
+logMsg "Creating copy of '${CONFIG_DOTFILES_DIR}/git/gitconfig' as '${HOME}/.gitconfig'...\n" 0
+
+cp "${CONFIG_DOTFILES_DIR}/git/gitconfig" "${HOME}/.gitconfig" > /dev/null 2>&1
+if [[ "$?" -eq "0" ]]; then
+    logMsg "Copy created. (Success)\n" 1
+    (( ++operationsCompleted ))
+else
+    logMsg "Copy not created. (Failed)\n" 1
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+
+logMsg "Setting up core.excludes file as '${CONFIG_DOTFILES_DIR}/git/gitignore'...\n" 1
+
+git config --global core.excludesfiles "${CONFIG_DOTFILES_DIR}/git/gitignore" > /dev/null 2>&1
+if [[ "$?" -eq "0" ]]; then
+    logMsg "core.excludes setting succeeded. (Success)" 2
+    (( ++operationsCompleted ))
+else
+    logMsg "core.excludes setting failed. (Failed)" 2
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+
+
+logMsg "Creating Symbolic Links to relevant dotfiles in your HOME directory, '${HOME}'...\n" 0
 
 # Installing Shell Dotfiles
-symlinkMsg="Symlink: ${HOME}/.${dotfile} -> ${DOTFILES_DIR}/${dotfile}"
 for dotfile in "${DOTFILES[@]}"; do
-    if ln -sf "${DOTFILES_DIR}/${dotfile}" "${HOME}/.${dotfile}"; then
-        logMsg  "$symlinkMsg (Success)\n" 1
+    symlinkMsg="Symlink: ${HOME}/.${dotfile} -> ${DOTFILES_DIR}/${dotfile}"
+
+    ln -sf "${DOTFILES_DIR}/${dotfile}" "${HOME}/.${dotfile}" > /dev/null 2>&1
+    if [[ "$?" -eq "0" ]]; then
+        logMsg "${symlinkMsg} (Success)\n" 1
         (( ++operationsCompleted ))
     else
-        logMsg "$symlinkMsg (Failed)\n" 1
+        logMsg "${symlinkMsg} (Failed)\n" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi
 done
 
 # Installing Config Dotfiles
-symlinkMsg="Symlink: ${HOME}/.${dotfile##*/} -> ${CONFIG_DOTFILES_DIR}/${dotfile}"
 for dotfile in "${CONFIG_DOTFILES[@]}"; do
-    if ln -sf "${CONFIG_DOTFILES_DIR}/${dotfile}" "${HOME}/.${dotfile##*/}"; then
-        logMsg "$symlinkMsg (Success)\n" 1
+    symlinkMsg="Symlink: ${HOME}/.${dotfile##*/} -> ${CONFIG_DOTFILES_DIR}/${dotfile}"
+
+    # Removes pre-existing .vim directory/file in HOME directory
+    if [[ "$dotfile" == "vim" ]] && [[ -e "${HOME}/.vim" ]]; then
+
+        logMsg "Removing existing '${HOME}/.vim'..." 1
+        rm -rf "${HOME}/.vim" > /dev/null 2>&1
+        if [[ ! -e "${HOME}/.vim" ]]; then
+            logMsg "Removed. (Success)" 2
+        else
+            logMsg "Failed to remove. (Failed)" 2
+            logMsg "$(exitMessage)" 0
+            exit 1
+        fi
+    fi
+
+    ln -sf "${CONFIG_DOTFILES_DIR}/${dotfile}" "${HOME}/.${dotfile##*/}" > /dev/null 2>&1
+    if [[ "$?" -eq "0" ]]; then
+        logMsg "${symlinkMsg} (Success)\n" 1
         (( ++operationsCompleted ))
     else
-        logMsg  "$symlinkMsg (Failed)\n" 1
+        logMsg "${symlinkMsg} (Failed)\n" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi

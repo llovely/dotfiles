@@ -20,6 +20,11 @@ installBrew() {
 }
 
 
+updateBrew() {
+    brew update --verbose
+}
+
+
 isBrewFormulaInstalled() {
     (brew list | grep --quiet "^$1\$") > /dev/null 2>&1
 }

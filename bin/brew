@@ -27,9 +27,14 @@ declare -ri MIN_BASH_VERS=3
 declare -r BREW_FORMULAE_FILE="${HOME}/.dotfiles/install/homebrew/brew_formulae"
 declare -r BREW_CASKS_FILE="${HOME}/.dotfiles/install/homebrew/brew_casks"
 
+# Indicates if Homebrew install + Formulae and Casks install succeeded
+brewInstallSuccess=false
+
 
 usage() {
     local script=${0##*/}
+    buffer=""
+    
     echo "Usage: ./${script} [-hs] [-l <log_ID>]"
     echo
     echo "Description:"
@@ -57,7 +62,7 @@ usage() {
     echo
     echo "    The directory and file containing the logged output will be:"
     echo
-    echo "        ${LOG_DIR}/<log_ID>/${LOG_DOTFILES}"
+    echo "        ${LOG_DIR}/<log_ID>/${LOG_BREW}"
     echo
     echo "    The <log_ID> must conform to the following pattern:"
     echo
@@ -71,14 +76,21 @@ usage() {
     echo
     echo "    If multiple '-l' options are provided, only the last log_ID will be used; for example:"
     echo
+    for ((i = 0; i < "${#script}"; ++i)); do
+        buffer="${buffer} "
+    done
     echo "        ./${script} -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
-    echo "                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^"
-    echo "                                                                            Only this log_ID will be used"
+    echo "          ${buffer}                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    echo "          ${buffer}                                                          Only this log_ID will be used"
 }
 
 
 exitMessage() {
-    echo "The last operation that failed is shown above (if any)."
+    if "$brewInstallSuccess"; then
+        echo "Homebrew + Formula and Casks successully installed."
+    else
+        echo "An error occured. The last operation that failed is shown above."
+    fi
     echo "The logged output can be found at: "
     echo "    ${LOG_DIR}/${logID}/${LOG_BREW}"
     echo "    ${LOG_DIR}/${logID}/${LOG_BREW_FORMULAE_DIR}"
@@ -310,19 +322,6 @@ fi
 
 
 ###############################################################################
-#			            Maintain Root Permissions
-###############################################################################
-
-# Asks, then maintains root permissions for the duration of this script
-sudo true
-while true; do
-    sudo -n true
-    sleep 60
-    kill -0 "$$" || exit
-done 2>/dev/null &
-
-
-###############################################################################
 #						Parse and Process Provided Options
 ###############################################################################
 
@@ -331,7 +330,23 @@ parseArgs "$@"
 # Display Help Message and exit
 if "$displayHelp"; then
     usage
+    exit 0
+fi
+
+# Asks for root permissions
+sudo true
+if [[ "$?" -ne 0 ]]; then
+    echo "ERROR: Failed to provide sudo password."
     exit 1
+fi
+
+# Maintains root permissions for the duration of this script
+if "${INSTALL_SUDO_MAINTAIN:-true}"; then
+    while true; do
+        sudo -n true
+        sleep 60
+        kill -0 "$$" || exit
+    done > /dev/null 2>&1 &
 fi
 
 # Generate Log Identifier, if one hasn't already been provided
@@ -426,5 +441,6 @@ if ! installBrewCasks; then
 fi
 
 
+brewInstallSuccess=true
 logMsg "$(exitMessage)" 0
 exit 0

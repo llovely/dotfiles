@@ -8,20 +8,20 @@
 #
 
 # If not running interactively, don't do anything.
-[[ "$-" != *i* ]] && return
+[[ "$-" != *i* ]] && return 0
 
 
 sourceDotfiles() {
     # Directory containing dotfiles associated with a Bash shell
-    local DOTFILES_DIR="$HOME/.dotfiles/shell"
+    local DOTFILES_DIR="${HOME}/.dotfiles/shell"
 
     # List of dotfiles to be sourced
-    local -a DOTFILES=( "$DOTFILES_DIR/bash_prompt" \
-                        "$DOTFILES_DIR/aliases" \
-                        "$DOTFILES_DIR/functions" \
-                        "$DOTFILES_DIR/paths" \
-                        "$DOTFILES_DIR/exports" \
-                        "$DOTFILES_DIR/private" )
+    local -a DOTFILES=( "${DOTFILES_DIR}/bash_prompt" \
+                        "${DOTFILES_DIR}/aliases" \
+                        "${DOTFILES_DIR}/functions" \
+                        "${DOTFILES_DIR}/paths" \
+                        "${DOTFILES_DIR}/exports" \
+                        "${HOME}/.bashrc.local" )
 
     # Sources dotfiles
     local dotfile=""
@@ -30,9 +30,12 @@ sourceDotfiles() {
     done
 
     # Determines the type of OS in order to source OS specific dotfiles
-    local osType="$(source "$HOME/.dotfiles/lib/os.sh"; echo "$(OSType)")"
-    if [[ -d "$DOTFILES_DIR/$osType" ]]; then
-        for dotfile in $DOTFILES_DIR/$osType/*; do
+    local osType="$(
+                    source "${HOME}/.dotfiles/lib/os.sh"; 
+                    OSType
+                   )"
+    if [[ "$?" -eq "0" ]] && [[ -d "${DOTFILES_DIR}/${osType}" ]]; then
+        for dotfile in ${DOTFILES_DIR}/${osType}/*; do
             [[ -r "$dotfile" ]] && [[ -f "$dotfile" ]] && source "$dotfile"
         done
     fi
@@ -40,7 +43,7 @@ sourceDotfiles() {
 
 
 # Set 256 color profile, where possible
-if [[ $COLORTERM == gnome-* && $TERM == xterm ]] && infocmp gnome-256color >/dev/null 2>&1; then
+if [[ "${COLORTERM}" == gnome-* && "${TERM}" == xterm ]] && infocmp gnome-256color >/dev/null 2>&1; then
     export TERM=gnome-256color
 elif infocmp xterm-256color >/dev/null 2>&1; then
     export TERM=xterm-256color

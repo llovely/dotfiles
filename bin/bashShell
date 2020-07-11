@@ -175,7 +175,7 @@ parseArgs "$@"
 # Display Help Message and exit
 if "$displayHelp"; then
     usage
-    exit 1
+    exit 0
 fi
 
 # Asks for root permissions

@@ -51,6 +51,8 @@ declare -a CONFIG_DOTFILES=( "inputrc" \
 
 usage() {
     local script=${0##*/}
+    local buffer=""
+    
     echo "Usage: ./${script} [-hs] [-l <log_ID>]"
     echo
     echo "Description:"
@@ -93,9 +95,12 @@ usage() {
     echo
     echo "    If multiple '-l' options are provided, only the last log_ID will be used; for example:"
     echo
+    for ((i = 0; i < "${#script}"; ++i)); do
+        buffer="${buffer} "
+    done
     echo "        ./${script} -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
-    echo "                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^"
-    echo "                                                                            Only this log_ID will be used"
+    echo "          ${buffer}                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    echo "          ${buffer}                                                          Only this log_ID will be used"
 }
 
 
@@ -186,7 +191,7 @@ parseArgs "$@"
 # Display Help Message and exit
 if "$displayHelp"; then
     usage
-    exit 1
+    exit 0
 fi
 
 # Generate Log Identifier, if one hasn't already been provided

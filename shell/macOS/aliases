@@ -23,6 +23,7 @@ if [[ "$?" -eq "0" ]]; then
 	alias grep="ggrep --color=auto"
 	alias fgrep="gfgrep --color=auto"
 	alias egrep="gegrep --color=auto"
+	alias sed="gsed"
 fi
 
 # Get OS X Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages

@@ -7,7 +7,7 @@
 #
 
 # Directory containing all logs for this project
-declare -r LOG_DIR="$HOME/.dotfiles/log"
+declare -r LOG_DIR="${HOME}/.dotfiles/log"
 
 # Log directory names
 declare -r LOG_BREW_FORMULAE_DIR="brew_formulae"
@@ -19,6 +19,7 @@ declare -r LOG_APT="apt.log"
 declare -r LOG_BREW="brew.log"
 declare -r LOG_DOTFILES="dotfiles.log"
 declare -r LOG_INSTALL="install.log"
+declare -r LOG_SHELL="bashShell.log"
 
 # Regex of a valid name for a directory containing the above log files
 declare -r VALID_LOG_ID_REGEX='^log_[0-9]{2}-[0-9]{2}-[0-9]{4}_[0-9]{2}-[0-9]{2}-[0-9]{2}$'
@@ -40,7 +41,7 @@ validLogID() {
 
 
 _logExists() {
-    local logFile="$LOG_DIR/$1/$2"
+    local logFile="${LOG_DIR}/${1}/${2}"
 
     [[ -f "$logFile" && -r "$logFile" && -w "$logFile" ]]
 }
@@ -66,9 +67,14 @@ logInstallExists() {
 }
 
 
+logShellExists() {
+    _logExists "$1" "$LOG_SHELL"
+}
+
+
 _createLog() {
-    local fileDir="$LOG_DIR/$1"
-    local file="$fileDir/$2"
+    local fileDir="${LOG_DIR}/${1}"
+    local file="${fileDir}/${2}"
 
     if _logExists "$1" "$2"; then
         return 0
@@ -97,8 +103,8 @@ createLogApt() {
 
 
 createLogBrew() {
-    local formulaDir="$LOG_DIR/$1/$LOG_BREW_FORMULAE_DIR"
-    local caskDir="$LOG_DIR/$1/$LOG_BREW_CASKS_DIR"
+    local formulaDir="${LOG_DIR}/${1}/${LOG_BREW_FORMULAE_DIR}"
+    local caskDir="${LOG_DIR}/${1}/${LOG_BREW_CASKS_DIR}"
 
     if ! _createLog "$1" "$LOG_BREW"; then
         return 1
@@ -130,9 +136,14 @@ createLogInstall() {
 }
 
 
+createLogShell() {
+    _createLog "$1" "$LOG_SHELL"
+}
+
+
 _logMessage() {
-    local fileDir="$LOG_DIR/$1"
-    local file="$fileDir/$2"
+    local fileDir="${LOG_DIR}/${1}"
+    local file="${fileDir}/${2}"
     local message="$3"
     local numTabs="$4"
     local printMessage="$5"
@@ -144,17 +155,17 @@ _logMessage() {
     # Indicates how much indentation will occur when displaying message.
     local buffer=""
     for ((i = 0; i < "$numTabs"; ++i)); do
-        buffer="$buffer    "
+        buffer="${buffer}    "
     done
     
     local line=""
     while IFS= read -r line; do
-        [[ ! "$line" == *\n ]] && line="$line\n"
+        [[ ! "$line" == *\n ]] && line="${line}\n"
 
         if "$printMessage"; then
             printf "$buffer$line"
         fi
-        printf "$(date +"%m-%d-%Y (%H:%M:%S)"): $buffer$line" >> "$file"	
+        printf "$(date +"%m-%d-%Y (%H:%M:%S)"): ${buffer$line}" >> "$file"	
     done <<< "$message"
 }
 
@@ -176,4 +187,9 @@ logDotfiles() {
 
 logInstall() {
     _logMessage "$1" "$LOG_INSTALL" "$2" "$3" "$4"
+}
+
+
+logShell() {
+    _logMessage "$1" "$LOG_SHELL" "$2" "$3" "$4"
 }

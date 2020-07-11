@@ -13,4 +13,4 @@
 #
 
 # If the current shell is Bash, source .bashrc
-[[ -n "$BASH_VERSION" ]] && [[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
+[[ -n "$BASH_VERSION" ]] && [[ -f "${HOME}/.bashrc" ]] && source "${HOME}/.bashrc"

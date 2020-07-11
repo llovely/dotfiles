@@ -165,7 +165,7 @@ _logMessage() {
         if "$printMessage"; then
             printf "$buffer$line"
         fi
-        printf "$(date +"%m-%d-%Y (%H:%M:%S)"): ${buffer$line}" >> "$file"	
+        printf "$(date +"%m-%d-%Y (%H:%M:%S)"): ${buffer}${line}" >> "$file"	
     done <<< "$message"
 }
 

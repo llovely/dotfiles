@@ -55,11 +55,11 @@ OSInfo() {
     [[ -z "$version" ]] && version="$unknown"
     [[ -z "$codename" ]] && codename="$unknown"
 
-    echo "ID:          $id"
-    echo "ID Like:     $idLike"
-    echo "Description: $prettyName"
-    echo "Version:     $version"
-    echo "Codename:    $codename"
+    echo "ID:          ${id}"
+    echo "ID Like:     ${idLike}"
+    echo "Description: ${prettyName}"
+    echo "Version:     ${version}"
+    echo "Codename:    ${codename}"
 }
 
 

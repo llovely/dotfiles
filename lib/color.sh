@@ -40,7 +40,7 @@ if [[ "$?" -eq "0" ]]; then
     declare -r red="$(tput setaf 196)"
 else
     declare -r reset="\e[0m"
-    declare -r bold=""
+    declare -r bold="\e[1m"
     declare -r black="\e[1;30m"
     declare -r white="\e[1;37m"
     declare -r purple="\e[1;35m"

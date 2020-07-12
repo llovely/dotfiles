@@ -9,8 +9,8 @@
 
 # Homebrew Specific Formula Sources.
 (
-source "$HOME/projects/dotfiles/lib/brew.sh"
-isBrewInstalled
+	source "${HOME}/projects/dotfiles/lib/brew.sh"
+	isBrewInstalled > /dev/null 2>&1
 )
 if [[ "$?" -eq "0" ]]; then
 	

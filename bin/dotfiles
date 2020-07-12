@@ -218,7 +218,7 @@ fi
 
 # Invalid option / argument was provided, display Help Message and exit
 if "$invalidArg"; then
-    logMsg "ERROR: Invalid option/argument provided\n" 0
+    logMsg "ERROR: Invalid option/argument provided.\n" 0
     logMsg "$(usage "$0")" 0
     exit 1
 fi

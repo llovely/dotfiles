@@ -10,14 +10,17 @@
 gitBranchPrompt() {
     local branch=""
 
-    if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then 
+    git rev-parse --is-inside-work-tree > /dev/null 2>&1
+    if [[ "$?" -eq "0" ]]; then 
         # Attempts to obtain the branch name of the following order:
         #	1) Short symbolic reference
         #	2) Short SHA
         #	3) Unknown branch, provide 'unknown' branch name
-        branch="$(git symbolic-ref --quiet --short HEAD 2> /dev/null || \
-                git rev-parse --short HEAD 2> /dev/null || \
-                echo '(__unknown__)')";
+        branch="$(
+                    git symbolic-ref --quiet --short HEAD 2> /dev/null || \
+                    git rev-parse --short HEAD 2> /dev/null || \
+                    echo 'unknown-branch'
+                 )"
     else
         return 1
     fi
@@ -27,31 +30,33 @@ gitBranchPrompt() {
 
 
 setPrompt() {
-    source "$HOME/.dotfiles/lib/color.sh"
-    local hostColor=""
+    source "${HOME}/.dotfiles/lib/color.sh"
 
-    # Highlight the hostname when connected via SSH
-    if [[ "$SSH_TTY" ]]; then
-        hostColor="$bold$red"
-    else
-        hostColor="$yellow"
-    fi
+    # Default colors for username and hostname
+    local userStyle="$green"
+    local hostStyle="$yellow"
+
+    # Highlight hostname when connected via SSH
+    [[ ! -z "$SSH_TTY" ]] && hostStyle="${bold}${red}"
+    
+    # Highlight username when you are the root user 
+    [[ "$EUID" -eq "0" ]] && userStyle="${bold}${red}"
 
     # Creates PS1 Prompt
-    PS1="\[\033]0;\w\007\]"	# Terminal Header
+    PS1="\[\033]0;\w\007\]"	  # Terminal Header
     PS1+="\n"
-    PS1+="\[$green\]\u"		# Username
-    PS1+="\[$white\]@"
-    PS1+="\[$hostColor\]\h"	# Hostname
-    PS1+="\[$white\]: "
-    PS1+="\[$orange\]\W "	# PWD
-    PS1+="\$(gitBranchPrompt \"$white\" \"$blue\")"  # Current Git Branch
+    PS1+="\[${userStyle}\]\u" # Username
+    PS1+="\[${white}\]@"
+    PS1+="\[${hostStyle}\]\h" # Hostname
+    PS1+="\[${white}\]: "
+    PS1+="\[${orange}\]\W "   # PWD
+    PS1+="\$(gitBranchPrompt \"${white}\" \"${cyan}\")"  # Current Git Branch
     PS1+="\n"
-    PS1+="\[$white\]\$ \[$reset\]"
+    PS1+="\[${white}\]\$ \[${reset}\]"
     export PS1
 
     # Creates PS2 Prompt
-    PS2="\[$yellow\]> $reset"
+    PS2="\[${yellow}\]> ${reset}"
     export PS2
 }
 

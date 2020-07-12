@@ -1,0 +1,16 @@
+#
+# dotfiles/install/apt/apt_packages
+#
+# List of APT packages to install.
+#
+# NOTE: DO NOT PLACE COMMENTS NEXT TO SPECIFIED PACKAGE.
+#
+# Author: Luis Love
+#
+
+###############################################################################
+#                                Commands
+###############################################################################
+bash
+gnuplot-x11
+htop

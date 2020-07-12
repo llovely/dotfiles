@@ -40,7 +40,7 @@ usage() {
     echo "Description:"
     echo
     echo "    This script will install Homebrew and specified Homebrew Formulae and Casks. Formulae and Casks"
-    echo "    are specified using the following files (see files for formating):"
+    echo "    are specified using the following files (see files for formatting):"
     echo
     echo "        Formulae: ${BREW_FORMULAE_FILE}"
     echo "           Casks: ${BREW_CASKS_FILE}"

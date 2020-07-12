@@ -32,7 +32,7 @@ brewInstallSuccess=false
 
 
 usage() {
-    local script=${0##*/}
+    local script="${0##*/}"
     buffer=""
     
     echo "Usage: ./${script} [-hs] [-l <log_ID>]"
@@ -43,7 +43,7 @@ usage() {
     echo "    are specified using the following files (see files for formating):"
     echo
     echo "        Formulae: ${BREW_FORMULAE_FILE}"
-    echo "           Casks: ${BREW_CASK_FILE}"
+    echo "           Casks: ${BREW_CASKS_FILE}"
     echo
     echo "Options:"
     echo
@@ -170,7 +170,7 @@ installBrewFormulae() {
         # Removes existing formula log file, if present
         if [[ -e "$logFile" ]]; then
             logMsg "Removing existing log file '${logFile}'...\n" 3
-            rm -rf "${logFile}" > /dev/null 2>&1
+            rm -rf "$logFile" > /dev/null 2>&1
             if [[ ! -e "$logFile" ]]; then
                 logMsg "Existing log removed. (Success)\n" 4
             else
@@ -181,7 +181,7 @@ installBrewFormulae() {
 
         # Creates formula log file
         logMsg "Creating log file for '${formula}' formula...\n" 3
-        (touch "${logFile}" && chmod u+rw "${logFile}") > /dev/null 2>&1
+        (touch "$logFile" && chmod u+rw "$logFile") > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
             logMsg "Log file created. (Success)\n" 4
         else
@@ -192,13 +192,13 @@ installBrewFormulae() {
         logMsg "Specific log output for '${formula}' can be found at: ${logFile}\n" 3
 
         # Install/Update Formula
-        isBrewFormulaInstalled "${formula}" > /dev/null 2>&1
+        isBrewFormulaInstalled "$formula" > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
             logMsg "'${formula}' already installed, upgrading...\n" 3
         fi
-        installBrewFormula "${formula}" 2>&1 | tee "${logFile}" | \
+        installBrewFormula "$formula" 2>&1 | tee "$logFile" | \
         while IFS= read -r output; do
-            logMsg "${output}" 4
+            logMsg "$output" 4
         done
 
         if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
@@ -207,7 +207,7 @@ installBrewFormulae() {
             logMsg "Installation Failed. (Failed)\n" 3
             return 1
         fi
-    done < <(grep -o '^[^#]*' "${BREW_FORMULAE_FILE}") # Reads each formula by line
+    done < <(grep -o '^[^#]*' "$BREW_FORMULAE_FILE") # Reads each formula by line
 
 
     if [[ "$formulaCount" -eq "0" ]]; then
@@ -248,7 +248,7 @@ installBrewCasks() {
         # Removes existing cask log file, if present
         if [[ -e "$logFile" ]]; then
             logMsg "Removing existing log file '${logFile}'...\n" 3
-            rm -rf "${logFile}" > /dev/null 2>&1
+            rm -rf "$logFile" > /dev/null 2>&1
             if [[ ! -e "$logFile" ]]; then
                 logMsg "Existing log removed. (Success)\n" 4
             else
@@ -259,7 +259,7 @@ installBrewCasks() {
 
         # Creates cask log file
         logMsg "Creating log file for '${cask}' cask...\n" 3
-        (touch "${logFile}" && chmod u+rw "${logFile}") > /dev/null 2>&1
+        (touch "$logFile" && chmod u+rw "$logFile") > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
             logMsg "Log file created. (Success)\n" 4
         else
@@ -270,13 +270,13 @@ installBrewCasks() {
         logMsg "Specific log output for '${cask}' can be found at: ${logFile}\n" 3
 
         # Install/Update Cask
-        isBrewCaskInstalled "${cask}" > /dev/null 2>&1
+        isBrewCaskInstalled "$cask" > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
             logMsg "'${cask}' already installed, upgrading...\n" 3
         fi
-        installBrewCask "${cask}" 2>&1 | tee "${logFile}" | \
+        installBrewCask "$cask" 2>&1 | tee "$logFile" | \
         while IFS= read -r output; do
-            logMsg "${output}" 4
+            logMsg "$output" 4
         done
 
         if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
@@ -285,7 +285,7 @@ installBrewCasks() {
             logMsg "Installation Failed. (Failed)\n" 3
             return 1
         fi
-    done < <(grep -o '^[^#]*' "${BREW_CASKS_FILE}") # Reads each cask by line
+    done < <(grep -o '^[^#]*' "$BREW_CASKS_FILE") # Reads each cask by line
 
 
     if [[ "$caskCount" -eq "0" ]]; then
@@ -335,7 +335,7 @@ fi
 
 # Asks for root permissions
 sudo true
-if [[ "$?" -ne 0 ]]; then
+if [[ "$?" -ne "0" ]]; then
     echo "ERROR: Failed to provide sudo password."
     exit 1
 fi
@@ -358,6 +358,7 @@ fi
 if ! validLogID "$logID"; then
     if ! "$silentMode"; then
         echo "ERROR: Invalid log_ID generated/provided. See usage (-h option) for correct format."
+        usage
     fi
     exit 1;
 fi
@@ -372,8 +373,8 @@ fi
 
 # Invalid option / argument was provided, display Help Message and exit
 if "$invalidArg"; then
-    logMsg "ERROR: Invalid option/argument provided!\n" 0
-    logMsg "$(usage ${0})" 0
+    logMsg "ERROR: Invalid option/argument provided.\n" 0
+    logMsg "$(usage "$0")" 0
     exit 1
 fi
 
@@ -398,7 +399,7 @@ if isBrewInstalled; then
 
     updateBrew 2>&1 | \
     while IFS= read -r output; do
-        logMsg "${output}" 2
+        logMsg "$output" 2
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
@@ -411,7 +412,7 @@ if isBrewInstalled; then
 else
     installBrew 2>&1 | \
     while IFS= read -r output; do
-        logMsg "${output}" 1
+        logMsg "$output" 1
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then

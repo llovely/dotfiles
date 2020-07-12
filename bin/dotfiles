@@ -50,7 +50,7 @@ declare -a CONFIG_DOTFILES=( "inputrc" \
 
 
 usage() {
-    local script=${0##*/}
+    local script="${0##*/}"
     local buffer=""
     
     echo "Usage: ./${script} [-hs] [-l <log_ID>]"
@@ -203,6 +203,7 @@ fi
 if ! validLogID "$logID"; then
     if ! "$silentMode"; then
         echo "ERROR: Invalid log_ID generated/provided. See usage (-h option) for correct format."
+        usage
     fi
     exit 1;
 fi
@@ -217,8 +218,8 @@ fi
 
 # Invalid option / argument was provided, display Help Message and exit
 if "$invalidArg"; then
-    logMsg "ERROR: Invalid option/argument provided!\n" 0
-    logMsg "$(usage ${0})" 0
+    logMsg "ERROR: Invalid option/argument provided\n" 0
+    logMsg "$(usage "$0")" 0
     exit 1
 fi
 
@@ -248,7 +249,7 @@ else
     if [[ -e "$PRIVATE_DOTFILE" ]]; then
         logMsg "Removing existing '${PRIVATE_DOTFILE}'...\n" 1
     fi
-    rm -rf "${PRIVATE_DOTFILE}" > /dev/null 2>&1
+    rm -rf "$PRIVATE_DOTFILE" > /dev/null 2>&1
     if [[ ! -e "$PRIVATE_DOTFILE" ]]; then
         logMsg "File removed. (Success)\n" 2
     else

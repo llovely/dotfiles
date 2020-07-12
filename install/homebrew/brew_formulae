@@ -1,7 +1,7 @@
 #
-# dotfiles/install/brew_formula
+# dotfiles/install/homebrew/brew_formulae
 #
-# List of Homebrew Casks to install.
+# List of Homebrew Formula to install.
 #
 # NOTE: DO NOT PLACE COMMENTS NEXT TO SPECIFIED FORMULA.
 #

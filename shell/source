@@ -20,3 +20,9 @@ HISTFILESIZE=2000
 # Check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
+
+
+#
+# Opam Configuration (OCaml)
+#
+test -r $HOME/.opam/opam-init/init.sh && . $HOME/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true

@@ -15,11 +15,6 @@
 if [[ "$?" -eq "0" ]]; then
 	
 	#
-	# Opam Configuration (OCaml)
-	#
-	test -r /Users/luis/.opam/opam-init/init.sh && . /Users/luis/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true
-
-	#
 	# Bash Completions
 	#
 	[[ -r "$(brew --prefix)/etc/profile.d/bash_completion.sh" ]] && . "$(brew --prefix)/etc/profile.d/bash_completion.sh" > /dev/null 2>&1

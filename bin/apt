@@ -7,7 +7,392 @@
 # Author: Luis Love
 #
 
-source "$HOME/.dotfiles/lib/logger.sh"
-source "$HOME/.dotfiles/lib/apt.sh"
+source "${HOME}/.dotfiles/lib/os.sh"
+source "${HOME}/.dotfiles/lib/apt_repo.sh"
 
-exit 1
+# Option Flags
+silentMode=false
+invalidArg=false
+displayHelp=false
+logProvided=false
+
+# Log Identifier
+logID=""
+
+# Minimum version of Bash required for this script to run
+declare -ri MIN_BASH_VERS=3
+
+# Location of APT packages and package repos to be installed
+declare -r APT_PACKAGES_FILE="${HOME}/.dotfiles/install/apt/apt_packages"
+declare -r APT_PACKAGE_REPOS_FILE="${HOME}/.dotfiles/install/apt/apt_package_repos"
+
+# Indicates if package installed successfully
+aptInstallSuccess=false
+
+# When silent mode is enabled, all output to stdout discarded. When needing to pipe
+# stdout of a command whose output is suppressed due to silent mode, set this
+# toggle to 'true'. Remember to set back to false
+pipeToggle=false
+
+
+usage() {
+    local script="${0##*/}"
+    buffer=""
+    
+    echo "Usage: ./${script} [-hs] [-l <log_ID>]"
+    echo
+    echo "Description:"
+    echo
+    echo "    This script installs packages using the APT package manager. Packages are specified using the"
+    echo "    following files (see files for formatting):"
+    echo
+    echo "             Packages: ${APT_PACKAGES_FILE}"
+    echo "        Package Repos: ${APT_PACKAGE_REPOS_FILE}"
+    echo
+    echo "Options:"
+    echo
+    echo "    -h            Prints this help message. If combined with other options, it will override them all."
+    echo "    -s            Silent Mode. No output is printed to stdout or stderr (logging is still preserved)."
+    echo "                  Returns 0 if all operations completed successfully; otherwise, 1 if partial or"
+    echo "                  complete failure."
+    echo "    -l <log_ID>   Provides the log_ID; aids in identifying where the associated logged output from"
+    echo "                  running this script is located. See below for more info."
+    echo
+    echo "Log Identifier (log_ID):"
+    echo
+    echo "    This identifier specifies which directory the logged output from running this script will be located in."
+    echo "    This option is typically used when storing the logged output from multiple scripts that conform to this"
+    echo "    style of identifier."
+    echo
+    echo "    The directory and file containing the logged output will be:"
+    echo
+    echo "        ${LOG_DIR}/<log_ID>/${LOG_BREW}"
+    echo
+    echo "    The <log_ID> must conform to the following pattern:"
+    echo
+    echo "        log_MONTH-DAY-YEAR_HOUR-MINUTE-SECOND"
+    echo
+    echo "    The extended regex representation of the above is as follows:"
+    echo
+    echo "        ${VALID_LOG_ID_REGEX}"
+    echo
+    echo "Notes:"
+    echo
+    echo "    If multiple '-l' options are provided, only the last log_ID will be used; for example:"
+    echo
+    for ((i = 0; i < "${#script}"; ++i)); do
+        buffer="${buffer} "
+    done
+    echo "        ./${script} -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
+    echo "          ${buffer}                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    echo "          ${buffer}                                                          Only this log_ID will be used"
+}
+
+
+exitMessage() {
+    if "$aptInstallSuccess"; then
+        echo "APT packages successully installed."
+    else
+        echo "An error occured. The last operation that failed is shown above."
+    fi
+    echo "The logged output can be found at: ${LOG_DIR}/${logID}/${LOG_APT}"
+}
+
+
+parseArgs() {
+    while [[ ! "$OPTIND" -gt "$#" ]]; do
+        while getopts ":hsl:" opt; do
+            case "$opt" in
+                s)  # Silent Mode selected
+                    silentMode=true
+                    ;;
+                l)  # log_ID provided
+                    logProvided=true
+                    logID="$OPTARG"
+                    ;;
+                h)  # Help Message requested
+                    displayHelp=true
+                    ;;
+                *)  # Unknown Option provided
+                    invalidArg=true
+                    ;;
+            esac
+        done
+
+        # Invalid Arguments are skipped.
+        if [[ ! "$OPTIND" -gt "$#" ]]; then
+            invalidArg=true
+            (( ++OPTIND ))
+        fi
+    done
+}
+
+
+logMsg() {
+    local display=""
+
+    # If silent mode is enabled, or if piped output is required, then
+    # enable logged output to be sent to stdout
+    if (! "$silentMode") || "$pipeToggle"; then
+        display=true;
+    else
+        display=false;
+    fi
+
+    logApt "$logID" "$1" "$2" "$display"
+}
+
+
+installAptPackages() {
+    local package""
+    local -i packageCount=0
+
+    logMsg "Installing APT Packages...\n" 0
+
+    if [[ ! -f "$APT_PACKAGES_FILE" ]]; then
+        logMsg "Unable to locate '${APT_PACKAGES_FILE}' file. (Failed)\n" 1
+        return 1
+    fi
+
+    # Process package for installation
+    while IFS= read -r package; do
+
+        # Ignore blank lines
+        if [[ "$package" =~ ^[[:space:]]*$ ]]; then
+            continue
+        fi
+        (( ++packageCount ))
+
+        # Installs package
+        getAptPackage "$logID" "$package" "$LOG_APT_PACKAGES_DIR" 1
+        if [[ "$?" -ne "0" ]]; then
+            return 1
+        fi
+    done < <(grep -o '^[^#]*' "$APT_PACKAGES_FILE") # Reads each package by line
+
+
+    if [[ "$packageCount" -eq "0" ]]; then
+        logMsg "0 Packages were found in '${APT_PACKAGES_FILE}' file. (Success)\n" 1
+    fi
+
+    return 0
+}
+
+
+installAptPackageRepos() {
+    local package=""
+    local installFunc=""
+    local -i packageCount=0
+
+    logMsg "Installing APT Package Repos...\n" 0
+
+    # Process package for installation
+    while IFS= read -r package; do
+
+        # Ignore blank lines
+        if [[ "$package" =~ ^[[:space:]]*$ ]]; then
+            continue
+        fi
+        (( ++packageCount ))
+
+        logMsg "Installing '${package}' Package Repo...\n" 1
+
+        # Checks to see if a package repo installation function exists
+        installFunc="aptRepoInstall_${package}"
+        type  "$installFunc" > /dev/null 2>&1
+        if [[ "$?" -ne "0" ]]; then
+            logMsg "Unable to locate installation function for '${package}' package repo. (Failed)\n" 2
+            return 1
+        fi
+
+
+        # Log file for specified package
+        logFile="${LOG_DIR}/${logID}/${LOG_APT_PACKAGE_REPOS_DIR}/${package}.log"
+
+        # Removes existing log file, if present
+        if [[ -e "$logFile" ]]; then
+            logMsg "Removing existing log file '${logFile}'...\n" 2
+            rm -rf "$logFile" > /dev/null 2>&1
+            if [[ ! -e "$logFile" ]]; then
+                logMsg "Existing log removed. (Success)\n" 3
+            else
+                logMsg "Failed to remove existing log. (Failed)\n" 3
+                return 1
+            fi
+        fi
+
+        # Creates log file
+        logMsg "Creating log file for '${package}' package repo...\n" 2
+        (touch "$logFile" && chmod u+rw "$logFile") > /dev/null 2>&1
+        if [[ "$?" -eq "0" ]]; then
+            logMsg "Log file created. (Success)\n" 3
+        else
+            logMsg "Unable to create log for this package repo. (Failed)\n" 3
+            return 1
+        fi
+
+
+        logMsg "Specific log output for '${package}' can be found at: ${logFile}\n" 2
+
+
+        # Installs package repo
+        "$installFunc" "$logFile" "$logID" "$LOG_APT_PACKAGES_DIR" 2
+        if [[ "$?" -ne "0" ]]; then
+            return 1
+        fi
+    done < <(grep -o '^[^#]*' "$APT_PACKAGE_REPOS_FILE") # Reads each package repo by line
+
+
+    if [[ "$packageCount" -eq "0" ]]; then
+        logMsg "0 Package Repos were found in '${APT_PACKAGE_REPOS_FILE}' file. (Success)\n" 1
+    fi
+
+    return 0
+}
+
+
+###############################################################################
+#			         Verifies Bash is Version 3 or Higher
+###############################################################################
+
+if [ "${BASH_VERSINFO:-0}" -lt "$MIN_BASH_VERS" ]; then
+    printf "ERROR: Bash Version 3 or higher is required, your version is " >&2
+    if [ -z "$BASH_VERSION" ]; then
+        printf "(unknown).\n" >&2
+    else
+        printf "${BASH_VERSION}.\n" >&2
+    fi
+    exit 1
+fi
+
+
+###############################################################################
+#			         Ensures Script IS NOT run using SUDO
+###############################################################################
+
+if [[ ! -z "$SUDO_USER" ]]; then
+    echo "ERROR: Don't execute this script with sudo." >&2
+    exit 1
+fi
+
+
+###############################################################################
+#						Parse and Process Provided Options
+###############################################################################
+
+parseArgs "$@"
+
+# Display Help Message and exit
+if "$displayHelp"; then
+    usage
+    exit 0
+fi
+
+# Asks for root permissions
+sudo true
+if [[ "$?" -ne "0" ]]; then
+    echo "ERROR: Failed to provide sudo password."
+    exit 1
+fi
+
+# Maintains root permissions for the duration of this script
+if "${INSTALL_SUDO_MAINTAIN:-true}"; then
+    while true; do
+        sudo -n true
+        sleep 60
+        kill -0 "$$" || exit
+    done > /dev/null 2>&1 &
+fi
+
+# Generate Log Identifier, if one hasn't already been provided
+if ! "$logProvided"; then
+    logID="$(createLogID)"
+fi
+
+# Verify Log Identifier, exit if invalid
+if ! validLogID "$logID"; then
+    if ! "$silentMode"; then
+        echo "ERROR: Invalid log_ID generated/provided. See usage (-h option) for correct format."
+        usage
+    fi
+    exit 1;
+fi
+
+# Create the log file, exit if the file couldn't be created
+if ! createLogApt "$logID"; then
+    if ! "$silentMode"; then
+        echo "ERROR: Unable to create log file '${LOG_DIR}/${logID}/${LOG_APT}'."
+    fi
+    exit 1
+fi
+
+# Invalid option / argument was provided, display Help Message and exit
+if "$invalidArg"; then
+    logMsg "ERROR: Invalid option/argument provided.\n" 0
+    logMsg "$(usage "$0")" 0
+    exit 1
+fi
+
+
+###############################################################################
+#						      Install APT Packages
+###############################################################################
+
+# Verifies that the system's OS is supported; otherwise, exits
+if ! OSsupported; then
+    logMsg "ERROR: Unsupported OS.\n" 0
+    logMsg "OS Information\n" 0
+    logMsg "==============\n" 0
+    logMsg "$(OSInfo)" 0
+    exit 1
+fi
+
+logMsg "Updating Package Repo Lists...\n" 0
+
+updateApt 2>&1 | \
+while IFS= read -r output; do
+    logMsg "$output" 1
+done
+
+if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
+    logMsg "Update Completed. (Success)\m" 1
+else
+    logMsg "Update Failed. (Failed)" 1
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+
+
+logMsg "Upgrading Installed Packages...\n" 0
+
+upgradeApt 2>&1 | \
+while IFS= read -r output; do
+    logMsg "$output" 1
+done
+
+if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
+    logMsg "Upgrade Completed. (Success)\m" 1
+else
+    logMsg "Upgrade Failed. (Failed)" 1
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+
+
+# Install packages
+if ! installAptPackages; then
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+
+
+# Install package repos
+if ! installAptPackageRepos; then
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+
+
+aptInstallSuccess=true
+logMsg "$(exitMessage)" 0
+exit 0

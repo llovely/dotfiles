@@ -1,0 +1,20 @@
+#
+# dotfiles/install/snap/snap_packages
+#
+# List of SNAP packages to install.
+#
+# NOTE: DO NOT PLACE COMMENTS NEXT TO SPECIFIED PACKAGE.
+#
+# Author: Luis Love
+#
+
+###############################################################################
+#                               Applications
+###############################################################################
+
+# Package                      Options
+###############################################################################
+code                           --classic
+spotify
+slack                          --classic
+discord

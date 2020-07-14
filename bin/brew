@@ -403,9 +403,9 @@ if isBrewInstalled; then
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-        logMsg "Update succeeded. (Success)" 1
+        logMsg "Update succeeded. (Success)\n" 1
     else
-        logMsg "Update Failed. (Failed)" 1
+        logMsg "Update Failed. (Failed)\n" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi
@@ -416,9 +416,9 @@ else
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-        logMsg "Installation Completed. (Success)" 1
+        logMsg "Installation Completed. (Success)\n" 1
     else
-        logMsg "Installation Failed. (Failed)" 1
+        logMsg "Installation Failed. (Failed)\n" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi

@@ -284,8 +284,8 @@ fi
 # Identifies machine's OS, then executes appropriate fucntion for OS package 
 # installation.
 case "$(OSType)" in
-    "$OS_MACOS_NAME") # Installs Homebrew + Formula and Casks
-        installScript "$BREW_SCRIPT" "Installing Homebrew and Formulas + Casks...\n"
+    "$OS_MACOS_NAME") # Installs Homebrew + Formulae and Casks
+        installScript "$BREW_SCRIPT" "Installing Homebrew and Formulae + Casks...\n"
         if [[ "$?" -ne "0" ]]; then
             packageInstallOp="$INSTALL_STATUS_FAILED"
             logMsg "$(exitMessage)" 0

@@ -12,7 +12,8 @@ declare -r LOG_DIR="${HOME}/.dotfiles/log"
 # Log directory names
 declare -r LOG_BREW_FORMULAE_DIR="brew_formulae"
 declare -r LOG_BREW_CASKS_DIR="brew_casks"
-declare -r LOG_APT_PACKAGE_DIR="apt_packages"
+declare -r LOG_APT_PACKAGES_DIR="apt_packages"
+declare -r LOG_APT_PACKAGE_REPOS_DIR="apt_repos"
 
 # Log file names
 declare -r LOG_APT="apt.log"
@@ -76,10 +77,6 @@ _createLog() {
     local fileDir="${LOG_DIR}/${1}"
     local file="${fileDir}/${2}"
 
-    if _logExists "$1" "$2"; then
-        return 0
-    fi
-
     # Creates logging directory, if it doesn't exist
     if [[ ! -d "$fileDir" ]]; then
         mkdir -p "$fileDir" > /dev/null 2>&1 
@@ -98,7 +95,25 @@ _createLog() {
 
 
 createLogApt() {
-    _createLog "$1" "$LOG_APT"
+    local packageDir="${LOG_DIR}/${1}/${LOG_APT_PACKAGES_DIR}"
+    local repoDir="${LOG_DIR}/${1}/${LOG_APT_PACKAGE_REPOS_DIR}"
+
+    _createLog "$1" "$LOG_APT" > /dev/null 2>&1 
+    [[ "$?" -ne "0" ]] && return 1
+
+    # Creates logging directory for Homebrew Formulae, if it doesn't exist
+    if [[ ! -d "$packageDir" ]]; then
+        mkdir -p "$packageDir" > /dev/null 2>&1 
+        [[ "$?" -ne "0" ]] && return 1
+    fi
+
+    # Creates logging directory for Homebrew Casks, if it doesn't exist
+    if [[ ! -d "$repoDir" ]]; then
+        mkdir -p "$repoDir" > /dev/null 2>&1 
+        [[ "$?" -ne "0" ]] && return 1
+    fi
+
+    return 0 
 }
 
 
@@ -106,9 +121,8 @@ createLogBrew() {
     local formulaDir="${LOG_DIR}/${1}/${LOG_BREW_FORMULAE_DIR}"
     local caskDir="${LOG_DIR}/${1}/${LOG_BREW_CASKS_DIR}"
 
-    if ! _createLog "$1" "$LOG_BREW"; then
-        return 1
-    fi
+    _createLog "$1" "$LOG_BREW" > /dev/null 2>&1 
+    [[ "$?" -ne "0" ]] && return 1
 
     # Creates logging directory for Homebrew Formulae, if it doesn't exist
     if [[ ! -d "$formulaDir" ]]; then
@@ -142,31 +156,37 @@ createLogShell() {
 
 
 _logMessage() {
-    local fileDir="${LOG_DIR}/${1}"
-    local file="${fileDir}/${2}"
+    local file="${LOG_DIR}/${1}/${2}"
     local message="$3"
-    local numTabs="$4"
+    local -i numTabs="$4"
     local printMessage="$5"
-
-    if ! _logExists "$1" "$2"; then
-        return 1
-    fi
-
-    # Indicates how much indentation will occur when displaying message.
     local buffer=""
+    local line=""
+
+    # Verifies if log exists
+    _logExists "$1" "$2" > /dev/null 2>&1
+    [[ "$?" -ne "0" ]] && return 1    
+
+    # Indicates how much indentation will occur per line of a log output
     for ((i = 0; i < "$numTabs"; ++i)); do
         buffer="${buffer}    "
     done
     
-    local line=""
+    # Process multiline messages by line
     while IFS= read -r line; do
+        # Ensure every line ends with a newline character
         [[ ! "$line" == *\n ]] && line="${line}\n"
 
+        # Print message to stdout
         if "$printMessage"; then
             printf "$buffer$line"
         fi
+
+        # Log message to log file
         printf "$(date +"%m-%d-%Y (%H:%M:%S)"): ${buffer}${line}" >> "$file"	
     done <<< "$message"
+
+    return 0
 }
 
 

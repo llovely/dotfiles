@@ -7,9 +7,9 @@
 # Author: Luis Love
 #
 
-source "${HOME}/.dotfiles/lib/logger.sh"
 source "${HOME}/.dotfiles/lib/brew.sh"
 source "${HOME}/.dotfiles/lib/os.sh"
+source "${HOME}/.dotfiles/lib/apt_repo.sh"
 
 # Option Flags
 silentMode=false
@@ -31,6 +31,7 @@ declare -r DOTFILES_SCRIPT="${HOME}/.dotfiles/bin/dotfiles"
 declare -r BREW_SCRIPT="${HOME}/.dotfiles/bin/brew"
 declare -r APT_SCRIPT="${HOME}/.dotfiles/bin/apt"
 declare -r SHELL_SCRIPT="${HOME}/.dotfiles/bin/bashShell"
+declare -r SNAP_SCRIPT="${HOME}/.dotfiles/bin/snap"
 
 # When invoking the above listed scripts, some require that root
 # permissions be maintained for their duration. A background process
@@ -292,8 +293,17 @@ case "$(OSType)" in
             exit 1    
         fi
         ;;
-    "$OS_DEBIAN_NAME"|"$OS_UBUNTU_NAME") # Installs APT packages
-        installScript "$APT_SCRIPT" "Installing APT Packages..."
+    "$OS_DEBIAN_NAME"|"$OS_UBUNTU_NAME")
+        # Installs packages and package repos using the APT package manager
+        installScript "$APT_SCRIPT" "Installing APT Packages and Repositories..."
+        if [[ "$?" -ne "0" ]]; then
+            packageInstallOp="$INSTALL_STATUS_FAILED"
+            logMsg "$(exitMessage)" 0
+            exit 1    
+        fi
+
+        #Installs packages using the SNAP package manager
+        installScript "$SNAP_SCRIPT" "Installing SNAP Packages..."
         if [[ "$?" -ne "0" ]]; then
             packageInstallOp="$INSTALL_STATUS_FAILED"
             logMsg "$(exitMessage)" 0

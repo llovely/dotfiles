@@ -1,0 +1,386 @@
+#!/usr/bin/env bash
+#
+# dotfiles/bin/snap
+#
+# Installs packages using the SNAP package manager.
+#
+# Author: Luis Love
+#
+
+source "${HOME}/.dotfiles/lib/logger.sh"
+source "${HOME}/.dotfiles/lib/os.sh"
+source "${HOME}/.dotfiles/lib/snap.sh"
+
+# Option Flags
+silentMode=false
+invalidArg=false
+displayHelp=false
+logProvided=false
+
+# Log Identifier
+logID=""
+
+# Minimum version of Bash required for this script to run
+declare -ri MIN_BASH_VERS=3
+
+# Location of SNAP packages to be installed
+declare -r SNAP_PACKAGES_FILE="${HOME}/.dotfiles/install/snap/snap_packages"
+
+# Indicates if package installed successfully
+snapInstallSuccess=false
+
+
+usage() {
+    local script="${0##*/}"
+    local buffer=""
+    
+    echo "Usage: ./${script} [-hs] [-l <log_ID>]"
+    echo
+    echo "Description:"
+    echo
+    echo "    This script installs packages using the SNAP package manager. Packages and corresponding options"
+    echo "    are specified using the file below:"
+    echo
+    echo "             Packages: ${SNAP_PACKAGES_FILE}"
+    echo
+    echo "Options:"
+    echo
+    echo "    -h            Prints this help message. If combined with other options, it will override them all."
+    echo "    -s            Silent Mode. No output is printed to stdout or stderr (logging is still preserved)."
+    echo "                  Returns 0 if all operations completed successfully; otherwise, 1 if partial or"
+    echo "                  complete failure."
+    echo "    -l <log_ID>   Provides the log_ID; aids in identifying where the associated logged output from"
+    echo "                  running this script is located. See below for more info."
+    echo
+    echo "Log Identifier (log_ID):"
+    echo
+    echo "    This identifier specifies which directory the logged output from running this script will be located in."
+    echo "    This option is typically used when storing the logged output from multiple scripts that conform to this"
+    echo "    style of identifier."
+    echo
+    echo "    The directory and file containing the logged output will be:"
+    echo
+    echo "        ${LOG_DIR}/<log_ID>/${LOG_BREW}"
+    echo
+    echo "    The <log_ID> must conform to the following pattern:"
+    echo
+    echo "        log_MONTH-DAY-YEAR_HOUR-MINUTE-SECOND"
+    echo
+    echo "    The extended regex representation of the above is as follows:"
+    echo
+    echo "        ${VALID_LOG_ID_REGEX}"
+    echo
+    echo "Notes:"
+    echo
+    echo "    If multiple '-l' options are provided, only the last log_ID will be used; for example:"
+    echo
+    for ((i = 0; i < "${#script}"; ++i)); do
+        buffer="${buffer} "
+    done
+    echo "        ./${script} -s -l log_05-17-2020_13-17-37 -l log_05-17-2020_14-58-09 -l log_05-18-2020-00-01-48"
+    echo "          ${buffer}                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    echo "          ${buffer}                                                          Only this log_ID will be used"
+}
+
+
+exitMessage() {
+    if "$snapInstallSuccess"; then
+        echo "SNAP packages successully installed."
+    else
+        echo "An error occured. The last operation that failed is shown above."
+    fi
+    echo "The logged output can be found at: ${LOG_DIR}/${logID}/${LOG_SNAP}"
+}
+
+
+parseArgs() {
+    while [[ ! "$OPTIND" -gt "$#" ]]; do
+        while getopts ":hsl:" opt; do
+            case "$opt" in
+                s)  # Silent Mode selected
+                    silentMode=true
+                    ;;
+                l)  # log_ID provided
+                    logProvided=true
+                    logID="$OPTARG"
+                    ;;
+                h)  # Help Message requested
+                    displayHelp=true
+                    ;;
+                *)  # Unknown Option provided
+                    invalidArg=true
+                    ;;
+            esac
+        done
+
+        # Invalid Arguments are skipped.
+        if [[ ! "$OPTIND" -gt "$#" ]]; then
+            invalidArg=true
+            (( ++OPTIND ))
+        fi
+    done
+}
+
+
+logMsg() {
+    local display=""
+
+    if ! "$silentMode"; then
+        display=true;
+    else
+        display=false;
+    fi
+
+    logSnap "$logID" "$1" "$2" "$display"
+}
+
+
+installSnapPackages() {
+    local package=""
+    local option=""
+    local logFile=""
+    local output=""
+    local -a packages=()
+    local -a options=()
+    local -i packageCount=0
+    local -i i=0
+
+    logMsg "Installing SNAP Packages..." 0
+
+    # Obtains packages and associated options to install
+    if [[ ! -f "$SNAP_PACKAGES_FILE" ]]; then
+        logMsg "Unable to locate '${SNAP_PACKAGES_FILE}' file. (Failed)" 1
+        return 1
+    fi
+    
+    while read -r package option; do
+        # Ignore blank lines
+        [[ "$package" =~ ^[[:space:]]*$ ]] && continue
+
+        # Store each package and option in their respective list
+        packages[${packageCount}]="$package"
+        options[${packageCount}]="$option" 
+        (( ++packageCount ))       
+    done < <(grep -o '^[^#]*' "$SNAP_PACKAGES_FILE") # Reads each formula by line     
+
+
+    # Installs each package
+    for ((i = 0; i < "$packageCount"; i++)); do
+
+        package=${packages[$i]}
+        option=${options[$i]}
+
+        logMsg "Installing '${package}' Package..." 1
+
+        # Log file for specified package
+        logFile="${LOG_DIR}/${logID}/${LOG_SNAP_PACKAGES_DIR}/${package}.log"
+
+        # Removes existing package log file, if it exists
+        if [[ -e "$logFile" ]]; then
+            logMsg "Removing existing log file '${logFile}'..." 2
+            rm -rf "$logFile" > /dev/null 2>&1
+            if [[ ! -e "$logFile" ]]; then
+                logMsg "Existing log removed. (Success)" 3
+            else
+                logMsg "Failed to remove existing log. (Failed)" 3
+                return 1
+            fi
+        fi
+
+        # Creates package log file
+        logMsg "Creating log file for '${package}' package..." 2
+        (touch "$logFile" && chmod u+rw "$logFile") > /dev/null 2>&1
+        if [[ "$?" -eq "0" ]]; then
+            logMsg "Log file created. (Success)" 3
+        else
+            logMsg "Unable to create log for this package. (Failed)" 3
+            return 1
+        fi
+
+
+        logMsg "Specific log output for '${package}' can be found at: ${logFile}" 2
+        
+
+        # Install/Update Package
+        logMsg "All installation steps are LEFT justified." 2
+        isSnapPackageInstalled "$package" > /dev/null 2>&1
+        if [[ "$?" -eq "0" ]]; then
+            logMsg "'${package}' already installed, upgrading..." 2
+        fi
+        
+        installSnapPackage "$package" "$option" 2>&1 | \
+        stdbuf -o0 tr '\r' '\n' | tee "$logFile" | \
+        while IFS= read -r output; do
+            logMsg "$output" 0
+        done
+
+        if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
+            logMsg "Installation Completed. (Success)" 2
+        else
+            logMsg "Installation Failed. (Failed)" 2
+            return 1
+        fi
+    done
+
+
+    if [[ "$packageCount" -eq "0" ]]; then
+        logMsg "0 Formulae were found in '${SNAP_PACKAGES_FILE}' file. (Success)" 1
+    fi
+
+    return 0
+}
+
+
+###############################################################################
+#			         Verifies Bash is Version 3 or Higher
+###############################################################################
+
+if [ "${BASH_VERSINFO:-0}" -lt "$MIN_BASH_VERS" ]; then
+    printf "ERROR: Bash Version 3 or higher is required, your version is " >&2
+    if [ -z "$BASH_VERSION" ]; then
+        printf "(unknown)." >&2
+    else
+        printf "${BASH_VERSION}." >&2
+    fi
+    exit 1
+fi
+
+
+###############################################################################
+#			         Ensures Script IS NOT run using SUDO
+###############################################################################
+
+if [[ ! -z "$SUDO_USER" ]]; then
+    echo "ERROR: Don't execute this script with sudo." >&2
+    exit 1
+fi
+
+
+###############################################################################
+#						Parse and Process Provided Options
+###############################################################################
+
+parseArgs "$@"
+
+# Display Help Message and exit
+if "$displayHelp"; then
+    usage
+    exit 0
+fi
+
+# Asks for root permissions
+sudo true
+if [[ "$?" -ne "0" ]]; then
+    echo "ERROR: Failed to provide sudo password."
+    exit 1
+fi
+
+# Maintains root permissions for the duration of this script
+if "${INSTALL_SUDO_MAINTAIN:-true}"; then
+    while true; do
+        sudo -n true
+        sleep 60
+        kill -0 "$$" || exit
+    done > /dev/null 2>&1 &
+fi
+
+# Generate Log Identifier, if one hasn't already been provided
+if ! "$logProvided"; then
+    logID="$(createLogID)"
+fi
+
+# Verify Log Identifier, exit if invalid
+if ! validLogID "$logID"; then
+    if ! "$silentMode"; then
+        echo "ERROR: Invalid log_ID generated/provided. See usage (-h option) for correct format."
+        usage
+    fi
+    exit 1;
+fi
+
+# Create the log file, exit if the file couldn't be created
+if ! createLogSnap "$logID"; then
+    if ! "$silentMode"; then
+        echo "ERROR: Unable to create log file '${LOG_DIR}/${logID}/${LOG_SNAP}'."
+    fi
+    exit 1
+fi
+
+# Invalid option / argument was provided, display Help Message and exit
+if "$invalidArg"; then
+    logMsg "ERROR: Invalid option/argument provided." 0
+    logMsg "$(usage "$0")" 0
+    exit 1
+fi
+
+
+###############################################################################
+#						 Install SNAP Package Manager
+###############################################################################
+
+# Verifies that the system's OS is supported; otherwise, exits
+if ! OSsupported; then
+    logMsg "ERROR: Unsupported OS." 0
+    logMsg "OS Information" 0
+    logMsg "==============" 0
+    logMsg "$(OSInfo)" 0
+    exit 1
+fi
+
+logMsg "Installing SNAP Package Manager..." 0
+
+if isSnapInstalled; then
+    logMsg "SNAP is already installed. Updating..." 1
+    updateSnap 2>&1 | \
+    while IFS= read -r output; do
+        logMsg "$output" 2
+    done
+
+    if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
+        logMsg "Update succeeded. (Success)" 1
+    else
+        logMsg "Update failed. (Failed)" 1
+        logMsg "$(exitMessage)" 0
+        exit 1
+    fi
+else    
+    installSnap 2>&1 | \
+    while IFS= read -r output; do
+        logMsg "$output" 1
+    done
+
+    if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
+        logMsg "Installation Completed. (Success)" 1
+    else
+        logMsg "Installation Failed. (Failed)" 1
+        logMsg "$(exitMessage)" 0
+        exit 1
+    fi
+fi
+
+
+logMsg "Starting Up Core SNAP Servives..." 0
+
+enableSnapServices > /dev/null 2>&1
+if [[ "$?" -eq "0" ]]; then
+    logMsg "Services started up. (Success)" 1    
+else
+    logMsg "Services were unable to start up. (Failed)" 1
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+
+
+###############################################################################
+#					       Install Snap Packagess
+###############################################################################
+
+if ! installSnapPackages; then
+    logMsg "$(exitMessage)" 0
+    exit 1
+fi
+
+
+snapInstallSuccess=true
+logMsg "$(exitMessage)" 0
+exit 0

@@ -55,10 +55,10 @@ getAptPackage() {
     local logFile=""
     local output=""
 
-    logMsg "Installing '${package}' Package...\n" "$baseIndent"
+    logMsg "Installing '${package}' Package..." "$baseIndent"
 
 
-    logMsg "Updaing package repo lists...\n" "$((${baseIndent} + 1))"
+    logMsg "Updaing package repo lists..." "$((${baseIndent} + 1))"
 
     updateApt 2> /dev/null | \
     while IFS= read -r output; do
@@ -66,9 +66,9 @@ getAptPackage() {
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-        logMsg "Update Completed. (Success)\n" "$((${baseIndent} + 2))"
+        logMsg "Update Completed. (Success)" "$((${baseIndent} + 2))"
     else
-        logMsg "Update Failed. (Failed)\n" "$((${baseIndent} + 2))"
+        logMsg "Update Failed. (Failed)" "$((${baseIndent} + 2))"
         return 1
     fi
     
@@ -78,34 +78,34 @@ getAptPackage() {
 
     # Removes existing log file, if present
     if [[ -e "$logFile" ]]; then
-        logMsg "Removing existing log file '${logFile}'...\n" "$((${baseIndent} + 1))"
+        logMsg "Removing existing log file '${logFile}'..." "$((${baseIndent} + 1))"
         rm -rf "$logFile" > /dev/null 2>&1
         if [[ ! -e "$logFile" ]]; then
-            logMsg "Existing log removed. (Success)\n" "$((${baseIndent} + 2))" 
+            logMsg "Existing log removed. (Success)" "$((${baseIndent} + 2))" 
         else
-            logMsg "Failed to remove existing log. (Failed)\n" "$((${baseIndent} + 2))"
+            logMsg "Failed to remove existing log. (Failed)" "$((${baseIndent} + 2))"
             return 1
         fi
     fi
 
     # Creates log file
-    logMsg "Creating log file for '${package}' package...\n" "$((${baseIndent} + 1))"
+    logMsg "Creating log file for '${package}' package..." "$((${baseIndent} + 1))"
     (touch "$logFile" && chmod u+rw "$logFile") > /dev/null 2>&1
     if [[ "$?" -eq "0" ]]; then
-        logMsg "Log file created. (Success)\n" "$((${baseIndent} + 2))"
+        logMsg "Log file created. (Success)" "$((${baseIndent} + 2))"
     else
-        logMsg "Unable to create log for this package. (Failed)\n" "$((${baseIndent} + 2))"
+        logMsg "Unable to create log for this package. (Failed)" "$((${baseIndent} + 2))"
         return 1
     fi
 
 
-    logMsg "Specific log output for '${package}' can be found at: ${logFile}\n" "$((${baseIndent} + 1))"
+    logMsg "Specific log output for '${package}' can be found at: ${logFile}" "$((${baseIndent} + 1))"
 
     
     # Install/Update Package
     isAptPackageInstalled "$package" > /dev/null 2>&1
     if [[ "$?" -eq "0" ]]; then
-        logMsg "'${package}' already installed, upgrading...\n" "$((${baseIndent} + 1))"
+        logMsg "'${package}' already installed, upgrading..." "$((${baseIndent} + 1))"
     fi
     installAptPackage "$package" 2>&1 | tee "$logFile" | \
     while IFS= read -r output; do
@@ -113,9 +113,9 @@ getAptPackage() {
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-        logMsg "Package installation completed. (Success)\n" "$((${baseIndent} + 1))"
+        logMsg "Package installation completed. (Success)" "$((${baseIndent} + 1))"
     else
-        logMsg "Package installation failed. (Failed)\n" "$((${baseIndent} + 1))"
+        logMsg "Package installation failed. (Failed)" "$((${baseIndent} + 1))"
         return 1
     fi
 

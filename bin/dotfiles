@@ -218,7 +218,7 @@ fi
 
 # Invalid option / argument was provided, display Help Message and exit
 if "$invalidArg"; then
-    logMsg "ERROR: Invalid option/argument provided.\n" 0
+    logMsg "ERROR: Invalid option/argument provided." 0
     logMsg "$(usage "$0")" 0
     exit 1
 fi
@@ -230,9 +230,9 @@ fi
 
 # Verifies that the system's OS is supported; otherwise, exits
 if ! OSsupported; then
-    logMsg "ERROR: Unsupported OS.\n" 0
-    logMsg "OS Information\n" 0
-    logMsg "==============\n" 0
+    logMsg "ERROR: Unsupported OS." 0
+    logMsg "OS Information" 0
+    logMsg "==============" 0
     logMsg "$(OSInfo)" 0
     exit 1
 fi
@@ -240,20 +240,20 @@ fi
 # Creates a private dotfile in the HOME directory. This is intended to store
 # private commands and credentials. The contents of this file will not be
 # commited, and is sourced onlh by the bashrc file.
-logMsg "Creating private dotfile '${PRIVATE_DOTFILE}'...\n" 0
+logMsg "Creating private dotfile '${PRIVATE_DOTFILE}'..." 0
 
 if [[ -f "$PRIVATE_DOTFILE" ]]; then
-    logMsg "File already exists. (Success)\n" 1
+    logMsg "File already exists. (Success)" 1
     (( ++operationsCompleted ))
 else
     if [[ -e "$PRIVATE_DOTFILE" ]]; then
-        logMsg "Removing existing '${PRIVATE_DOTFILE}'...\n" 1
+        logMsg "Removing existing '${PRIVATE_DOTFILE}'..." 1
     fi
     rm -rf "$PRIVATE_DOTFILE" > /dev/null 2>&1
     if [[ ! -e "$PRIVATE_DOTFILE" ]]; then
-        logMsg "File removed. (Success)\n" 2
+        logMsg "File removed. (Success)" 2
     else
-        logMsg "Failed to remove. (Failed)\n" 2
+        logMsg "Failed to remove. (Failed)" 2
         logMsg "$(exitMessage)" 0
         exit 1
     fi
@@ -268,29 +268,29 @@ else
 
 	__EOF__
     if [[ -f "$PRIVATE_DOTFILE" ]]; then
-        logMsg "File created. (Success)\n" 1
+        logMsg "File created. (Success)" 1
         (( ++operationsCompleted ))
     else
-        logMsg "File not created. (Failed)\n" 1
+        logMsg "File not created. (Failed)" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi
 fi
 
 
-logMsg "Creating copy of '${CONFIG_DOTFILES_DIR}/git/gitconfig' as '${HOME}/.gitconfig'...\n" 0
+logMsg "Creating copy of '${CONFIG_DOTFILES_DIR}/git/gitconfig' as '${HOME}/.gitconfig'..." 0
 
 cp "${CONFIG_DOTFILES_DIR}/git/gitconfig" "${HOME}/.gitconfig" > /dev/null 2>&1
 if [[ "$?" -eq "0" ]]; then
-    logMsg "Copy created. (Success)\n" 1
+    logMsg "Copy created. (Success)" 1
     (( ++operationsCompleted ))
 else
-    logMsg "Copy not created. (Failed)\n" 1
+    logMsg "Copy not created. (Failed)" 1
     logMsg "$(exitMessage)" 0
     exit 1
 fi
 
-logMsg "Setting up core.excludes file as '${CONFIG_DOTFILES_DIR}/git/gitignore'...\n" 1
+logMsg "Setting up core.excludes file as '${CONFIG_DOTFILES_DIR}/git/gitignore'..." 1
 
 git config --global core.excludesfiles "${CONFIG_DOTFILES_DIR}/git/gitignore" > /dev/null 2>&1
 if [[ "$?" -eq "0" ]]; then
@@ -303,7 +303,7 @@ else
 fi
 
 
-logMsg "Creating Symbolic Links to relevant dotfiles in your HOME directory, '${HOME}'...\n" 0
+logMsg "Creating Symbolic Links to relevant dotfiles in your HOME directory, '${HOME}'..." 0
 
 # Installing Shell Dotfiles
 for dotfile in "${DOTFILES[@]}"; do
@@ -311,10 +311,10 @@ for dotfile in "${DOTFILES[@]}"; do
 
     ln -sf "${DOTFILES_DIR}/${dotfile}" "${HOME}/.${dotfile}" > /dev/null 2>&1
     if [[ "$?" -eq "0" ]]; then
-        logMsg "${symlinkMsg} (Success)\n" 1
+        logMsg "${symlinkMsg} (Success)" 1
         (( ++operationsCompleted ))
     else
-        logMsg "${symlinkMsg} (Failed)\n" 1
+        logMsg "${symlinkMsg} (Failed)" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi
@@ -340,10 +340,10 @@ for dotfile in "${CONFIG_DOTFILES[@]}"; do
 
     ln -sf "${CONFIG_DOTFILES_DIR}/${dotfile}" "${HOME}/.${dotfile##*/}" > /dev/null 2>&1
     if [[ "$?" -eq "0" ]]; then
-        logMsg "${symlinkMsg} (Success)\n" 1
+        logMsg "${symlinkMsg} (Success)" 1
         (( ++operationsCompleted ))
     else
-        logMsg "${symlinkMsg} (Failed)\n" 1
+        logMsg "${symlinkMsg} (Failed)" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi

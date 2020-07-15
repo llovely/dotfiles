@@ -115,12 +115,12 @@ aptRepoInstall_sbt() {
     for package in "${packages[@]}"; do
         _installPackage "$logFile" "$logID" "$package" "$packageDir" "$baseIndent" 
         if [[ "$?" -ne "0" ]]; then
-            _logMsgAppend "Package repo installation failed. (Failed)\n" "$baseIndent"  "$logFile"
+            _logMsgAppend "Package repo installation failed. (Failed)" "$baseIndent"  "$logFile"
             return 1
         fi
     done
 
-    _logMsgAppend "Package repo installation completed. (Success)\n" "$baseIndent"  "$logFile"
+    _logMsgAppend "Package repo installation completed. (Success)" "$baseIndent"  "$logFile"
 
     return 0
 }

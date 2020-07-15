@@ -219,7 +219,7 @@ fi
 
 # Invalid option / argument was provided, display Help Message and exit
 if "$invalidArg"; then
-    logMsg "ERROR: Invalid option/argument provided.\n" 0
+    logMsg "ERROR: Invalid option/argument provided." 0
     logMsg "$(usage "$0")" 0
     exit 1
 fi
@@ -231,42 +231,42 @@ fi
 
 # Verifies that the system's OS is supported; otherwise, exits
 if ! OSsupported; then
-    logMsg "ERROR: Unsupported OS.\n" 0
-    logMsg "OS Information\n" 0
-    logMsg "==============\n" 0
+    logMsg "ERROR: Unsupported OS." 0
+    logMsg "OS Information" 0
+    logMsg "==============" 0
     logMsg "$(OSInfo)" 0
     exit 1
 fi
 
 
-logMsg "Changing default shell to Bash...\n" 0
+logMsg "Changing default shell to Bash..." 0
 
 # Verifies provided Bash executable
 if "$bashProvided"; then
-    logMsg "Bash executable '${defaultShell}' provided.\n" 1
+    logMsg "Bash executable '${defaultShell}' provided." 1
 
     if [[ "$defaultShell" =~ .*/bash$ ]]; then
-        logMsg "Provided executable appears to be Bash. (Success)\n" 2
+        logMsg "Provided executable appears to be Bash. (Success)" 2
     else
-        logMsg "Provided executable does not appear to be Bash. (Failed)\n" 2
+        logMsg "Provided executable does not appear to be Bash. (Failed)" 2
         logMsg "$(exitMessage)" 0
         exit 1
     fi
 
     if [[ -e "$defaultShell" ]]; then
-        logMsg "Bash executable located. (Success)\n" 2
+        logMsg "Bash executable located. (Success)" 2
     else
-        logMsg "Unable to locate provided Bash executable. (Failed)\n" 2
+        logMsg "Unable to locate provided Bash executable. (Failed)" 2
         logMsg "$(exitMessage)" 0
         exit 1
     fi
 # Obtains Bash executable from the system
 else
-    logMsg "Locating Bash...\n" 1
+    logMsg "Locating Bash..." 1
 
     defaultShell="$(which bash 2>&1)"
     if [[ "$?" -eq "0" ]] && [[ -e "$defaultShell" ]]; then
-        logMsg "Bash found: ${defaultShell} (Success)\n" 2
+        logMsg "Bash found: ${defaultShell} (Success)" 2
     else
         logMsg "Unable to locate Bash on your system. Try providing its path using '-b' option. (Failed)" 2
         logMsg "$(exitMessage)" 0
@@ -276,53 +276,53 @@ fi
 
 # Ensures that Bash is an executable
 if [[ -x "$defaultShell" ]]; then
-    logMsg "'${defaultShell}' is executable. (Success)\n" 2
+    logMsg "'${defaultShell}' is executable. (Success)" 2
 else
-    logMsg "'${defaultShell}' is not an executable. (Failed)\n" 2
+    logMsg "'${defaultShell}' is not an executable. (Failed)" 2
     logMsg "$(exitMessage)" 0
     exit 1
 fi
 
 
-logMsg "Verifying that Bash is Version 3 or higher...\n" 1
+logMsg "Verifying that Bash is Version 3 or higher..." 1
 
 version="$(
             "$defaultShell" -c 'echo "$BASH_VERSION"; [ "${BASH_VERSINFO:-0}" -ge "3" ]' 2>&1
           )"
 if [[ "$?" -eq "0" ]]; then
-    logMsg "Version: ${version} (Success)\n" 2
+    logMsg "Version: ${version} (Success)" 2
 else
-    logMsg "Version: ${version} (Failed)\n" 2
-    logMsg "Try installing a newer version of Bash.\n" 2
+    logMsg "Version: ${version} (Failed)" 2
+    logMsg "Try installing a newer version of Bash." 2
     logMsg "$(exitMessage)" 0
     exit 1
 fi
 
 
-logMsg "Appending '${defaultShell}' to list of known shells in '${SHELLS_FILE}'...\n" 1
+logMsg "Appending '${defaultShell}' to list of known shells in '${SHELLS_FILE}'..." 1
 
 grep -sq "$defaultShell" "$SHELLS_FILE" > /dev/null 2>&1
 if [[ "$?" -eq "0" ]]; then
-    logMsg "'$defaultShell' already present. (Success)\n" 2
+    logMsg "'$defaultShell' already present. (Success)" 2
 else
     sudo echo "$defaultShell" >> "$SHELLS_FILE" > /dev/null 2>&1
     if [[ "$?" -eq "0" ]]; then
-        logMsg "Append Complete. (Success)\n" 2
+        logMsg "Append Complete. (Success)" 2
     else
-        logMsg "Unable to append. (Failed)\n" 2
+        logMsg "Unable to append. (Failed)" 2
         logMsg "$(exitMessage)" 0
         exit 1
     fi
 fi
 
 
-logMsg "Changing default shell to '${defaultShell}'...\n" 1
+logMsg "Changing default shell to '${defaultShell}'..." 1
 
 sudo chsh -s "$defaultShell" "$USER" > /dev/null 2>&1
 if [[ "$?" -eq "0" ]]; then
-    logMsg "'${defaultShell}' is now the default shell. (Success)\n" 2
+    logMsg "'${defaultShell}' is now the default shell. (Success)" 2
 else
-    logMsg "Unable to change shell. (Failed)\n" 2
+    logMsg "Unable to change shell. (Failed)" 2
     logMsg "$(exitMessage)" 0
     exit 1
 fi

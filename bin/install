@@ -180,9 +180,9 @@ installScript() {
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-        logMsg "Installation completed. (Success)\n" 1
+        logMsg "Installation completed. (Success)" 1
     else
-        logMsg "Installation did not fully complete. (Failed)\n" 1
+        logMsg "Installation did not fully complete. (Failed)" 1
         return 1
     fi
 }
@@ -259,7 +259,7 @@ fi
 
 # Invalid option / argument was provided, display Help Message and exit
 if "$invalidArg"; then
-    logMsg "ERROR: Invalid option/argument provided.\n" 0
+    logMsg "ERROR: Invalid option/argument provided." 0
     logMsg "$(usage "$0")" 0
     exit 1
 fi
@@ -271,9 +271,9 @@ fi
 
 # Verifies that the system's OS is supported; otherwise, exits
 if ! OSsupported; then
-    logMsg "ERROR: Unsupported OS.\n" 0
-    logMsg "OS Information\n" 0
-    logMsg "==============\n" 0
+    logMsg "ERROR: Unsupported OS." 0
+    logMsg "OS Information" 0
+    logMsg "==============" 0
     logMsg "$(OSInfo)" 0
     exit 1
 fi
@@ -285,7 +285,7 @@ fi
 # installation.
 case "$(OSType)" in
     "$OS_MACOS_NAME") # Installs Homebrew + Formulae and Casks
-        installScript "$BREW_SCRIPT" "Installing Homebrew and Formulae + Casks...\n"
+        installScript "$BREW_SCRIPT" "Installing Homebrew and Formulae + Casks..."
         if [[ "$?" -ne "0" ]]; then
             packageInstallOp="$INSTALL_STATUS_FAILED"
             logMsg "$(exitMessage)" 0
@@ -293,7 +293,7 @@ case "$(OSType)" in
         fi
         ;;
     "$OS_DEBIAN_NAME"|"$OS_UBUNTU_NAME") # Installs APT packages
-        installScript "$APT_SCRIPT" "Installing APT Packages...\n"
+        installScript "$APT_SCRIPT" "Installing APT Packages..."
         if [[ "$?" -ne "0" ]]; then
             packageInstallOp="$INSTALL_STATUS_FAILED"
             logMsg "$(exitMessage)" 0
@@ -302,7 +302,7 @@ case "$(OSType)" in
         ;;
     *) # Unknown OS, should never reach this point
         packageInstallOp="$INSTALL_STATUS_FAILED"
-        logMsg "ERROR: Unknown OS encountered.\n" 0
+        logMsg "ERROR: Unknown OS encountered." 0
         exit 1
         ;;
 esac
@@ -317,13 +317,13 @@ if ! "$bashProvided" && [[ "$(OSType)" == "$OS_MACOS_NAME" ]]; then
         defaultShell="$(brew --prefix)/bin/bash"
         bashProvided=true
     else
-        logMsg "${OS_MACOS_NAME} is the system's OS, but Bash isn't installed using Homebrew. (Failed)\n" 1
+        logMsg "${OS_MACOS_NAME} is the system's OS, but Bash isn't installed using Homebrew. (Failed)" 1
         shellInstallOp="$INSTALL_STATUS_FAILED"
         logMsg "$(exitMessage)" 0
         exit 1
     fi
 fi
-installScript "$SHELL_SCRIPT" "Changing default Shell to Bash...\n"
+installScript "$SHELL_SCRIPT" "Changing default Shell to Bash..."
 if [[ "$?" -ne "0" ]]; then
     shellInstallOp="$INSTALL_STATUS_FAILED"
     logMsg "$(exitMessage)" 0
@@ -335,7 +335,7 @@ shellInstallOp="$INSTALL_STATUS_SUCCESS"
 # STEP #3)
 #
 # Install Dotfiles
-installScript "$DOTFILES_SCRIPT" "Installing Dotfiles...\n"
+installScript "$DOTFILES_SCRIPT" "Installing Dotfiles..."
 if [[ "$?" -ne "0" ]]; then
     dotfilesInstallOp="$INSTALL_STATUS_FAILED"
     logMsg "$(exitMessage)" 0

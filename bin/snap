@@ -238,9 +238,9 @@ installSnapPackages() {
 if [ "${BASH_VERSINFO:-0}" -lt "$MIN_BASH_VERS" ]; then
     printf "ERROR: Bash Version 3 or higher is required, your version is " >&2
     if [ -z "$BASH_VERSION" ]; then
-        printf "(unknown)." >&2
+        printf "(unknown).\n" >&2
     else
-        printf "${BASH_VERSION}." >&2
+        printf "${BASH_VERSION}.\n" >&2
     fi
     exit 1
 fi

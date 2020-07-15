@@ -33,7 +33,7 @@ brewInstallSuccess=false
 
 usage() {
     local script="${0##*/}"
-    buffer=""
+    local buffer=""
     
     echo "Usage: ./${script} [-hs] [-l <log_ID>]"
     echo
@@ -146,10 +146,10 @@ installBrewFormulae() {
     local output=""
     local -i formulaCount=0
 
-    logMsg "Installing Homebrew Formulae... (this may take a while)\n" 1
+    logMsg "Installing Homebrew Formulae... (this may take a while)" 1
 
     if [[ ! -f "$BREW_FORMULAE_FILE" ]]; then
-        logMsg "Unable to locate '${BREW_FORMULAE_FILE}' file. (Failed)\n" 2
+        logMsg "Unable to locate '${BREW_FORMULAE_FILE}' file. (Failed)" 2
         return 1
     fi
 
@@ -162,39 +162,39 @@ installBrewFormulae() {
         fi
         (( ++formulaCount ))
 
-        logMsg "Installing '${formula}' Formula...\n" 2
+        logMsg "Installing '${formula}' Formula..." 2
 
         # Log file for specified formula
         logFile="${LOG_DIR}/${logID}/${LOG_BREW_FORMULAE_DIR}/${formula}.log"
 
         # Removes existing formula log file, if present
         if [[ -e "$logFile" ]]; then
-            logMsg "Removing existing log file '${logFile}'...\n" 3
+            logMsg "Removing existing log file '${logFile}'..." 3
             rm -rf "$logFile" > /dev/null 2>&1
             if [[ ! -e "$logFile" ]]; then
-                logMsg "Existing log removed. (Success)\n" 4
+                logMsg "Existing log removed. (Success)" 4
             else
-                logMsg "Failed to remove existing log. (Failed)\n" 4
+                logMsg "Failed to remove existing log. (Failed)" 4
                 return 1
             fi
         fi
 
         # Creates formula log file
-        logMsg "Creating log file for '${formula}' formula...\n" 3
+        logMsg "Creating log file for '${formula}' formula..." 3
         (touch "$logFile" && chmod u+rw "$logFile") > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
-            logMsg "Log file created. (Success)\n" 4
+            logMsg "Log file created. (Success)" 4
         else
-            logMsg "Unable to create log for this formula. (Failed)\n" 4
+            logMsg "Unable to create log for this formula. (Failed)" 4
             return 1
         fi
 
-        logMsg "Specific log output for '${formula}' can be found at: ${logFile}\n" 3
+        logMsg "Specific log output for '${formula}' can be found at: ${logFile}" 3
 
         # Install/Update Formula
         isBrewFormulaInstalled "$formula" > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
-            logMsg "'${formula}' already installed, upgrading...\n" 3
+            logMsg "'${formula}' already installed, upgrading..." 3
         fi
         installBrewFormula "$formula" 2>&1 | tee "$logFile" | \
         while IFS= read -r output; do
@@ -202,16 +202,16 @@ installBrewFormulae() {
         done
 
         if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-            logMsg "Installation Completed. (Success)\n" 3
+            logMsg "Installation Completed. (Success)" 3
         else
-            logMsg "Installation Failed. (Failed)\n" 3
+            logMsg "Installation Failed. (Failed)" 3
             return 1
         fi
     done < <(grep -o '^[^#]*' "$BREW_FORMULAE_FILE") # Reads each formula by line
 
 
     if [[ "$formulaCount" -eq "0" ]]; then
-        logMsg "0 Formulae were found in '${BREW_FORMULAE_FILE}' file. (Success)\n" 2
+        logMsg "0 Formulae were found in '${BREW_FORMULAE_FILE}' file. (Success)" 2
     fi
 
     return 0
@@ -224,10 +224,10 @@ installBrewCasks() {
     local output=""
     local -i caskCount=0
 
-    logMsg "Installing Homebrew Casks... (this may take a while)\n" 1
+    logMsg "Installing Homebrew Casks... (this may take a while)" 1
 
     if [[ ! -f "$BREW_CASKS_FILE" ]]; then
-        logMsg "Unable to locate '${BREW_CASKS_FILE}' file. (Failed)\n" 2
+        logMsg "Unable to locate '${BREW_CASKS_FILE}' file. (Failed)" 2
         return 1
     fi
 
@@ -240,39 +240,39 @@ installBrewCasks() {
         fi
         (( ++caskCount ))
 
-        logMsg "Installing '${cask}' Cask...\n" 2
+        logMsg "Installing '${cask}' Cask..." 2
 
         # Log file for specified cask
         logFile="${LOG_DIR}/${logID}/${LOG_BREW_CASKS_DIR}/${cask}.log"
 
         # Removes existing cask log file, if present
         if [[ -e "$logFile" ]]; then
-            logMsg "Removing existing log file '${logFile}'...\n" 3
+            logMsg "Removing existing log file '${logFile}'..." 3
             rm -rf "$logFile" > /dev/null 2>&1
             if [[ ! -e "$logFile" ]]; then
-                logMsg "Existing log removed. (Success)\n" 4
+                logMsg "Existing log removed. (Success)" 4
             else
-                logMsg "Failed to remove existing log. (Failed)\n" 4
+                logMsg "Failed to remove existing log. (Failed)" 4
                 return 1
             fi
         fi
 
         # Creates cask log file
-        logMsg "Creating log file for '${cask}' cask...\n" 3
+        logMsg "Creating log file for '${cask}' cask..." 3
         (touch "$logFile" && chmod u+rw "$logFile") > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
-            logMsg "Log file created. (Success)\n" 4
+            logMsg "Log file created. (Success)" 4
         else
-            logMsg "Unable to create log for this cask. (Failed)\n" 4
+            logMsg "Unable to create log for this cask. (Failed)" 4
             return 1
         fi
 
-        logMsg "Specific log output for '${cask}' can be found at: ${logFile}\n" 3
+        logMsg "Specific log output for '${cask}' can be found at: ${logFile}" 3
 
         # Install/Update Cask
         isBrewCaskInstalled "$cask" > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
-            logMsg "'${cask}' already installed, upgrading...\n" 3
+            logMsg "'${cask}' already installed, upgrading..." 3
         fi
         installBrewCask "$cask" 2>&1 | tee "$logFile" | \
         while IFS= read -r output; do
@@ -280,16 +280,16 @@ installBrewCasks() {
         done
 
         if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-            logMsg "Installation Completed. (Success)\n" 3
+            logMsg "Installation Completed. (Success)" 3
         else
-            logMsg "Installation Failed. (Failed)\n" 3
+            logMsg "Installation Failed. (Failed)" 3
             return 1
         fi
     done < <(grep -o '^[^#]*' "$BREW_CASKS_FILE") # Reads each cask by line
 
 
     if [[ "$caskCount" -eq "0" ]]; then
-        logMsg "0 Casks were found in '${BREW_CASKS_FILE}' file. (Success)\n" 2
+        logMsg "0 Casks were found in '${BREW_CASKS_FILE}' file. (Success)" 2
     fi
 
     return 0
@@ -373,7 +373,7 @@ fi
 
 # Invalid option / argument was provided, display Help Message and exit
 if "$invalidArg"; then
-    logMsg "ERROR: Invalid option/argument provided.\n" 0
+    logMsg "ERROR: Invalid option/argument provided." 0
     logMsg "$(usage "$0")" 0
     exit 1
 fi
@@ -385,17 +385,17 @@ fi
 
 # Verifies that the system's OS is supported; otherwise, exits
 if ! OSsupported; then
-    logMsg "ERROR: Unsupported OS.\n" 0
-    logMsg "OS Information\n" 0
-    logMsg "==============\n" 0
+    logMsg "ERROR: Unsupported OS." 0
+    logMsg "OS Information" 0
+    logMsg "==============" 0
     logMsg "$(OSInfo)" 0
     exit 1
 fi
 
-logMsg "Installing Homebrew... (this may take a while)\n" 0
+logMsg "Installing Homebrew... (this may take a while)" 0
 
 if isBrewInstalled; then
-    logMsg "Homebrew already installed. Updating... (this may take a while)\n" 1
+    logMsg "Homebrew already installed. Updating... (this may take a while)" 1
 
     updateBrew 2>&1 | \
     while IFS= read -r output; do
@@ -403,9 +403,9 @@ if isBrewInstalled; then
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-        logMsg "Update succeeded. (Success)\n" 1
+        logMsg "Update succeeded. (Success)" 1
     else
-        logMsg "Update Failed. (Failed)\n" 1
+        logMsg "Update failed. (Failed)" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi
@@ -416,9 +416,9 @@ else
     done
 
     if [[ "${PIPESTATUS[0]}" -eq "0" ]]; then
-        logMsg "Installation Completed. (Success)\n" 1
+        logMsg "Installation Completed. (Success)" 1
     else
-        logMsg "Installation Failed. (Failed)\n" 1
+        logMsg "Installation Failed. (Failed)" 1
         logMsg "$(exitMessage)" 0
         exit 1
     fi
@@ -429,7 +429,7 @@ fi
 #					        Install Formulae and Casks
 ###############################################################################
 
-logMsg "Installing Homebrew Formulae and Casks...\n" 0
+logMsg "Installing Homebrew Formulae and Casks..." 0
 
 if ! installBrewFormulae; then
     logMsg "$(exitMessage)" 0

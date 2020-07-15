@@ -37,7 +37,7 @@ pipeToggle=false
 
 usage() {
     local script="${0##*/}"
-    buffer=""
+    local buffer=""
     
     echo "Usage: ./${script} [-hs] [-l <log_ID>]"
     echo
@@ -147,10 +147,10 @@ installAptPackages() {
     local package""
     local -i packageCount=0
 
-    logMsg "Installing APT Packages...\n" 0
+    logMsg "Installing APT Packages..." 0
 
     if [[ ! -f "$APT_PACKAGES_FILE" ]]; then
-        logMsg "Unable to locate '${APT_PACKAGES_FILE}' file. (Failed)\n" 1
+        logMsg "Unable to locate '${APT_PACKAGES_FILE}' file. (Failed)" 1
         return 1
     fi
 
@@ -172,7 +172,7 @@ installAptPackages() {
 
 
     if [[ "$packageCount" -eq "0" ]]; then
-        logMsg "0 Packages were found in '${APT_PACKAGES_FILE}' file. (Success)\n" 1
+        logMsg "0 Packages were found in '${APT_PACKAGES_FILE}' file. (Success)" 1
     fi
 
     return 0
@@ -184,7 +184,7 @@ installAptPackageRepos() {
     local installFunc=""
     local -i packageCount=0
 
-    logMsg "Installing APT Package Repos...\n" 0
+    logMsg "Installing APT Package Repos..." 0
 
     # Process package for installation
     while IFS= read -r package; do
@@ -195,13 +195,13 @@ installAptPackageRepos() {
         fi
         (( ++packageCount ))
 
-        logMsg "Installing '${package}' Package Repo...\n" 1
+        logMsg "Installing '${package}' Package Repo..." 1
 
         # Checks to see if a package repo installation function exists
         installFunc="aptRepoInstall_${package}"
         type  "$installFunc" > /dev/null 2>&1
         if [[ "$?" -ne "0" ]]; then
-            logMsg "Unable to locate installation function for '${package}' package repo. (Failed)\n" 2
+            logMsg "Unable to locate installation function for '${package}' package repo. (Failed)" 2
             return 1
         fi
 
@@ -211,28 +211,28 @@ installAptPackageRepos() {
 
         # Removes existing log file, if present
         if [[ -e "$logFile" ]]; then
-            logMsg "Removing existing log file '${logFile}'...\n" 2
+            logMsg "Removing existing log file '${logFile}'..." 2
             rm -rf "$logFile" > /dev/null 2>&1
             if [[ ! -e "$logFile" ]]; then
-                logMsg "Existing log removed. (Success)\n" 3
+                logMsg "Existing log removed. (Success)" 3
             else
-                logMsg "Failed to remove existing log. (Failed)\n" 3
+                logMsg "Failed to remove existing log. (Failed)" 3
                 return 1
             fi
         fi
 
         # Creates log file
-        logMsg "Creating log file for '${package}' package repo...\n" 2
+        logMsg "Creating log file for '${package}' package repo..." 2
         (touch "$logFile" && chmod u+rw "$logFile") > /dev/null 2>&1
         if [[ "$?" -eq "0" ]]; then
-            logMsg "Log file created. (Success)\n" 3
+            logMsg "Log file created. (Success)" 3
         else
-            logMsg "Unable to create log for this package repo. (Failed)\n" 3
+            logMsg "Unable to create log for this package repo. (Failed)" 3
             return 1
         fi
 
 
-        logMsg "Specific log output for '${package}' can be found at: ${logFile}\n" 2
+        logMsg "Specific log output for '${package}' can be found at: ${logFile}" 2
 
 
         # Installs package repo
@@ -244,7 +244,7 @@ installAptPackageRepos() {
 
 
     if [[ "$packageCount" -eq "0" ]]; then
-        logMsg "0 Package Repos were found in '${APT_PACKAGE_REPOS_FILE}' file. (Success)\n" 1
+        logMsg "0 Package Repos were found in '${APT_PACKAGE_REPOS_FILE}' file. (Success)" 1
     fi
 
     return 0
@@ -328,7 +328,7 @@ fi
 
 # Invalid option / argument was provided, display Help Message and exit
 if "$invalidArg"; then
-    logMsg "ERROR: Invalid option/argument provided.\n" 0
+    logMsg "ERROR: Invalid option/argument provided." 0
     logMsg "$(usage "$0")" 0
     exit 1
 fi
@@ -340,14 +340,14 @@ fi
 
 # Verifies that the system's OS is supported; otherwise, exits
 if ! OSsupported; then
-    logMsg "ERROR: Unsupported OS.\n" 0
-    logMsg "OS Information\n" 0
-    logMsg "==============\n" 0
+    logMsg "ERROR: Unsupported OS." 0
+    logMsg "OS Information" 0
+    logMsg "==============" 0
     logMsg "$(OSInfo)" 0
     exit 1
 fi
 
-logMsg "Updating Package Repo Lists...\n" 0
+logMsg "Updating Package Repo Lists..." 0
 
 updateApt 2>&1 | \
 while IFS= read -r output; do
@@ -363,7 +363,7 @@ else
 fi
 
 
-logMsg "Upgrading Installed Packages...\n" 0
+logMsg "Upgrading Installed Packages..." 0
 
 upgradeApt 2>&1 | \
 while IFS= read -r output; do

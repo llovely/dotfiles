@@ -347,6 +347,19 @@ if ! OSsupported; then
     exit 1
 fi
 
+# Ensure that only Debian/Ubuntu based distros can execute this script
+case "$(OSType)" in
+    "$OS_DEBIAN_NAME"|"$OS_UBUNTU_NAME");;
+    *)
+        logMsg "ERROR: Only Debain/Ubuntu based distros are allowed to execute this script." 0
+        logMsg "OS Information" 0
+        logMsg "==============" 0
+        logMsg "$(OSInfo)" 0
+        exit 1 
+        ;;
+esac
+
+
 logMsg "Updating Package Repo Lists..." 0
 
 updateApt 2>&1 | \

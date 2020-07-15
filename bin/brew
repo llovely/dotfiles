@@ -392,6 +392,19 @@ if ! OSsupported; then
     exit 1
 fi
 
+# Ensure that only Debian/Ubuntu based distros can execute this script
+case "$(OSType)" in
+    "$OS_MACOS_NAME");;
+    *)
+        logMsg "ERROR: This script can only be executed using macOS." 0
+        logMsg "OS Information" 0
+        logMsg "==============" 0
+        logMsg "$(OSInfo)" 0
+        exit 1 
+        ;;
+esac
+
+
 logMsg "Installing Homebrew... (this may take a while)" 0
 
 if isBrewInstalled; then

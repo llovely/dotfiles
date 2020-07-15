@@ -185,6 +185,7 @@ _logMessage() {
     local printMessage="$5"
     local buffer=""
     local line=""
+    local -i i=0
 
     # Verifies if log exists
     _logExists "$1" "$2" > /dev/null 2>&1
@@ -197,16 +198,13 @@ _logMessage() {
     
     # Process multiline messages by line
     while IFS= read -r line; do
-        # Ensure every line ends with a newline character
-        [[ ! "$line" == *\n ]] && line="${line}\n"
-
         # Print message to stdout
         if "$printMessage"; then
-            printf "$buffer$line"
+            printf '%s\n' "$buffer$line"
         fi
 
         # Log message to log file
-        printf "$(date +"%m-%d-%Y (%H:%M:%S)"): ${buffer}${line}" >> "$file"	
+        printf '%s\n' "$(date +"%m-%d-%Y (%H:%M:%S)"): ${buffer}${line}" >> "$file"	
     done <<< "$message"
 
     return 0

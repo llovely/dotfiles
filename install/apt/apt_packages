@@ -16,6 +16,7 @@ gnuplot
 htop
 curl
 wget
+openssh-server
 snapd
 
 

@@ -79,6 +79,7 @@ _installPackage() {
 #   3) Replace the elements in the 'packages' array with the packages
 #      needed to be installed. Several packages can be listed, if need be.
 #
+# SBT
 aptRepoInstall_sbt() {
     local logFile="$1"
     local logID="$2"
@@ -104,7 +105,7 @@ aptRepoInstall_sbt() {
     
 
     # Installs package repositories
-    _logMsgAppend "Acquiring package repo info...\n" "$baseIndent" "$logFile"
+    _logMsgAppend "Acquiring package repo info..." "$baseIndent" "$logFile"
     for cmd in "${repo_cmds[@]}"; do
         _acquirePackageRepoInfo "$logFile" "$cmd" "$baseIndent"
         [[ "$?" -ne "0" ]] && return 1
@@ -129,3 +130,96 @@ aptRepoInstall_sbt() {
 ###############################################################################
 #         Place Additional Package Repo Installation Functions Below
 ###############################################################################
+
+# NVM (Node Version Manager)
+aptRepoInstall_nvm() {
+    local logFile="$1"
+    local logID="$2"
+    local packageDir="$3"
+    local -i baseIndent="$4"
+    local cmd=""
+    local package=""
+
+    # List of commands to install package repositories
+    local -a repo_cmds=(
+                        'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash'
+                       )
+
+    # Packages to be installed
+    local -a packages=()
+
+    # Enables output to be piped out if silent mode is enabled
+    pipeToggle=true
+    trap 'pipeToggle=false' RETURN
+    
+
+    # Installs package repositories
+    _logMsgAppend "Acquiring package repo info..." "$baseIndent" "$logFile"
+    for cmd in "${repo_cmds[@]}"; do
+        _acquirePackageRepoInfo "$logFile" "$cmd" "$baseIndent"
+        [[ "$?" -ne "0" ]] && return 1
+    done
+
+
+    # Install packages
+    for package in "${packages[@]}"; do
+        _installPackage "$logFile" "$logID" "$package" "$packageDir" "$baseIndent" 
+        if [[ "$?" -ne "0" ]]; then
+            _logMsgAppend "Package repo installation failed. (Failed)" "$baseIndent"  "$logFile"
+            return 1
+        fi
+    done
+
+    _logMsgAppend "Package repo installation completed. (Success)" "$baseIndent"  "$logFile"
+
+    return 0
+}
+
+
+# Google Chrome
+aptRepoInstall_chrome() {
+    local logFile="$1"
+    local logID="$2"
+    local packageDir="$3"
+    local -i baseIndent="$4"
+    local cmd=""
+    local package=""
+
+    # List of commands to install package repositories
+    local -a repo_cmds=(
+                        'wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'
+                       )
+
+    # Packages to be installed
+    local -a packages=(
+                        './google-chrome-stable_current_amd64.deb'
+                      )
+
+    # Enables output to be piped out if silent mode is enabled
+    pipeToggle=true
+    trap 'pipeToggle=false' RETURN
+    
+
+    # Installs package repositories
+    _logMsgAppend "Acquiring package repo info..." "$baseIndent" "$logFile"
+    for cmd in "${repo_cmds[@]}"; do
+        _acquirePackageRepoInfo "$logFile" "$cmd" "$baseIndent"
+        [[ "$?" -ne "0" ]] && return 1
+    done
+
+
+    # Install packages
+    for package in "${packages[@]}"; do
+        _installPackage "$logFile" "$logID" "$package" "$packageDir" "$baseIndent" 
+        if [[ "$?" -ne "0" ]]; then
+            _logMsgAppend "Package repo installation failed. (Failed)" "$baseIndent"  "$logFile"
+            rm -rf "${packages[0]}" > /dev/null 2>&1
+            return 1
+        fi
+    done
+    rm -rf "${packages[0]}" > /dev/null 2>&1
+
+    _logMsgAppend "Package repo installation completed. (Success)" "$baseIndent"  "$logFile"
+
+    return 0
+}

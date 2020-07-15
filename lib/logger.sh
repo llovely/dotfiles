@@ -14,6 +14,7 @@ declare -r LOG_BREW_FORMULAE_DIR="brew_formulae"
 declare -r LOG_BREW_CASKS_DIR="brew_casks"
 declare -r LOG_APT_PACKAGES_DIR="apt_packages"
 declare -r LOG_APT_PACKAGE_REPOS_DIR="apt_repos"
+declare -r LOG_SNAP_PACKAGES_DIR="snap_packages"
 
 # Log file names
 declare -r LOG_APT="apt.log"
@@ -21,6 +22,7 @@ declare -r LOG_BREW="brew.log"
 declare -r LOG_DOTFILES="dotfiles.log"
 declare -r LOG_INSTALL="install.log"
 declare -r LOG_SHELL="bashShell.log"
+declare -r LOG_SNAP="snap.log"
 
 # Regex of a valid name for a directory containing the above log files
 declare -r VALID_LOG_ID_REGEX='^log_[0-9]{2}-[0-9]{2}-[0-9]{4}_[0-9]{2}-[0-9]{2}-[0-9]{2}$'
@@ -70,6 +72,11 @@ logInstallExists() {
 
 logShellExists() {
     _logExists "$1" "$LOG_SHELL"
+}
+
+
+logSnapExists() {
+    _logExists "$1" "$LOG_SNAP"
 }
 
 
@@ -155,6 +162,22 @@ createLogShell() {
 }
 
 
+createLogSnap() {
+    local packageDir="${LOG_DIR}/${1}/${LOG_SNAP_PACKAGES_DIR}"
+
+    _createLog "$1" "$LOG_SNAP" > /dev/null 2>&1 
+    [[ "$?" -ne "0" ]] && return 1
+
+    # Creates logging directory for SNAP packages, if it doesn't exist
+    if [[ ! -d "$packageDir" ]]; then
+        mkdir -p "$packageDir" > /dev/null 2>&1 
+        [[ "$?" -ne "0" ]] && return 1
+    fi
+
+    return 0
+}
+
+
 _logMessage() {
     local file="${LOG_DIR}/${1}/${2}"
     local message="$3"
@@ -212,4 +235,9 @@ logInstall() {
 
 logShell() {
     _logMessage "$1" "$LOG_SHELL" "$2" "$3" "$4"
+}
+
+
+logSnap() {
+    _logMessage "$1" "$LOG_SNAP" "$2" "$3" "$4"    
 }

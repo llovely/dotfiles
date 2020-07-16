@@ -149,7 +149,7 @@ Options:
 If changes were made to the original [gitconfig](https://github.com/llovely/dotfiles/tree/master/config/git/gitconfig) file, simply rerun the above command and restart your shell for the changes to take effect. All other alterations to any dotfile in the [shell](https://github.com/llovely/dotfiles/tree/master/shell) or [config](https://github.com/llovely/dotfiles/tree/master/config) directories should take place upon a shell restart.
 
 
-### [bashShell](https://github.com/llovely/dotfiles/tree/master/bin/bashShell) (Debian/Ubuntu)
+### [bashShell](https://github.com/llovely/dotfiles/tree/master/bin/bashShell)
 
 This executable changes your default shell to Bash (only if the located Bash executable is version 3 or higher).
 

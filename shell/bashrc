@@ -21,6 +21,7 @@ sourceDotfiles() {
                         "${DOTFILES_DIR}/functions" \
                         "${DOTFILES_DIR}/paths" \
                         "${DOTFILES_DIR}/exports" \
+                        "${DOTFILES_DIR}/source" \
                         "${HOME}/.bashrc.local" )
 
     # Sources dotfiles

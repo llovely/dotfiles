@@ -36,3 +36,5 @@ sbt
 nvm
 dart
 python
+openjdk
+openjdk@11

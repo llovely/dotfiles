@@ -13,7 +13,7 @@ readonly LOG_DIR='logs'
 
 
 # Globals (these variable(s) can be set by the user of the library)
-LOG_PARENT_DIR='../..'
+LOG_PARENT_DIR='.'
 LOG_DISPLAY_OUTPUT_WITH_TIMESTAMP='false'
 LOG_DISPLAY_OUTPUT='true'
 LOG_DISPLAY_ERR_MSG='true'

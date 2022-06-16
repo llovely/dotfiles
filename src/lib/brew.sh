@@ -41,7 +41,7 @@ function brew::installed() {
 # Returns:
 #   0 if formula is installed; otherwise, non-zero on error.
 ################################################################################
-function brew::formula_installed() {
+function brew::installed_formula() {
   local formula="$1"
 
   brew list --formula "${formula}" &> /dev/null
@@ -59,7 +59,7 @@ function brew::formula_installed() {
 # Returns:
 #   0 if cask is installed; otherwise, non-zero on error.
 ################################################################################
-function brew::cask_installed() {
+function brew::installed_cask() {
   local cask="$1"
 
   brew list --cask "${cask}" &> /dev/null

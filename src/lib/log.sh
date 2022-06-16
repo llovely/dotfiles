@@ -536,7 +536,7 @@ function log::_output_parameter() {
   declare -i ret_code
 
   # Reads lines from stdin
-  while IFS= read -r line 2> /dev/null; ret_code="$?"; (( $ret_code == 0 )); do
+  while IFS= read -r line &> /dev/null; ret_code="$?"; (( $ret_code == 0 )); do
     log::_output_format "${line}" "${file}" || return 1
   done <<< "${msg}"
 
@@ -567,7 +567,7 @@ function log::_output_piped() {
   declare -i ret_code
 
   # Reads lines from stdin
-  while IFS= read -r line 2> /dev/null; ret_code="$?"; (( $ret_code == 0 )); do
+  while IFS= read -r line &> /dev/null; ret_code="$?"; (( $ret_code == 0 )); do
     log::_output_format "${line}" "${file}" || return 1
   done < /dev/stdin
 

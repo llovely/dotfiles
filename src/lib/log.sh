@@ -525,7 +525,7 @@ function log::_output_format() {
 # Arguments:
 #   Output message; Log filename
 # Outputs:
-#   Writes message(s) to stdout.
+#   Writes message(s) to stdout; writes error message(s) to stderr.
 # Returns:
 #   0 if message(s) outputted to stdout and/or appended to log file; otherwise,
 #   non-zero on error.
@@ -533,11 +533,20 @@ function log::_output_format() {
 function log::_output_parameter() {
   local msg="$1"
   local file="$2"
+  declare -i ret_code
 
-  # Reads lines from message provided via a Heredoc (<<<)
-  while IFS= read -r line; do
+  # Reads lines from stdin
+  while IFS= read -r line 2> /dev/null; ret_code="$?"; (( $ret_code == 0 )); do
     log::_output_format "${line}" "${file}" || return 1
   done <<< "${msg}"
+
+  if (( $ret_code != 1 )); then
+    [[ "${LOG_DISPLAY_ERR_MSG}" == 'true' ]] && \
+    echo "ERROR: ${FUNCNAME[0]}() failed. Encountered a read error while" \
+         "processing output." >&2
+    return 1
+  fi
+  return 0
 }
 
 
@@ -548,18 +557,27 @@ function log::_output_parameter() {
 # Arguments:
 #   Log filename
 # Outputs:
-#   Writes message(s) to stdout.
+#   Writes message(s) to stdout; writes error message(s) to stderr.
 # Returns:
 #   0 if message(s) outputted to stdout and/or appended to log file; otherwise,
 #   non-zero on error.
 ################################################################################
 function log::_output_piped() {
   local file="$1"
+  declare -i ret_code
 
   # Reads lines from stdin
-  while IFS= read -r line; do
+  while IFS= read -r line 2> /dev/null; ret_code="$?"; (( $ret_code == 0 )); do
     log::_output_format "${line}" "${file}" || return 1
   done < /dev/stdin
+
+  if (( $ret_code != 1 )); then
+    [[ "${LOG_DISPLAY_ERR_MSG}" == 'true' ]] && \
+    echo "ERROR: ${FUNCNAME[0]}() failed. Encountered a read error while" \
+         "processing output." >&2
+    return 1
+  fi
+  return 0
 }
 
 

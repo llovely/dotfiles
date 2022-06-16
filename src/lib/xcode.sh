@@ -174,7 +174,7 @@ function xcode::installed_app() {
 # Outputs:
 #   Writes error message(s) to stderr.
 # Returns:
-#   0 if Xcode command line tools are installed; otherwise 1. Other non-zero on 
+#   0 if Xcode command line tools are installed; otherwise 1. Other non-zero on
 #   error.
 ################################################################################
 function xcode::installed_clt() {
@@ -183,7 +183,7 @@ function xcode::installed_clt() {
   xcode_path="$(xcode::_obtain_xcode_path "${FUNCNAME[0]}")"
   (( $? != 0 )) && return 2
 
-  xcode::installed || return 1 
+  xcode::installed || return 1
   [[ "${xcode_path}" == "${XCODE_CLT_PATH}" ]] \
     || [[ -d "${XCODE_CLT_PATH}" ]]  &> /dev/null
 }
@@ -223,7 +223,7 @@ function xcode::reset() {
 # Outputs:
 #   Writes error message(s) to stderr.
 # Returns:
-#   0 if Xcode's active developer directory path set; otherwise, non-zero on 
+#   0 if Xcode's active developer directory path set; otherwise, non-zero on
 #   error.
 ################################################################################
 function xcode::switch() {
@@ -239,7 +239,7 @@ function xcode::switch() {
       if ! sudo xcode-select --switch "${path}" &> /dev/null; then
         [[ "${XCODE_DISPLAY_ERR_MSG}" == 'true' ]] && \
         echo "ERROR: ${FUNCNAME[0]}() failed. Unable set '${path}'" \
-             "as active developer directory path." >&2 
+             "as active developer directory path." >&2
         return 1
       fi
       return 0
@@ -257,12 +257,12 @@ function xcode::switch() {
 
 
 ################################################################################
-# Accepts Xcode's license agreement, if using Xcode application as active 
+# Accepts Xcode's license agreement, if using Xcode application as active
 # developer directory.
 # Globals:
 #   FUNCNAME
 #   XCODE_APP_PATH
-#   XCODE_DISPLAY_ERR_MSG 
+#   XCODE_DISPLAY_ERR_MSG
 # Arguments:
 #   None
 # Outputs:

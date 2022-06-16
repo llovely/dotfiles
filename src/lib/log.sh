@@ -2,7 +2,7 @@
 # log: Logging Library
 #
 # Library for logging output, for debugging purposes. After setting up a logging
-# directory and log file, logged output can be obtained via a provided string or 
+# directory and log file, logged output can be obtained via a provided string or
 # piped through stdin.
 #
 
@@ -79,7 +79,7 @@ function log::id_valid() {
 function log::_dir_func_validate_args() {
   local func_name="$1"
   local id="$2"
-  
+
   if [[ -z "${id}" ]]; then
     [[ "${LOG_DISPLAY_ERR_MSG}" == 'true' ]] && \
     echo "ERROR: ${func_name}() failed. Blank log ID provided." >&2
@@ -484,7 +484,7 @@ function log::file_clear() {
 # Outputs:
 #   Writes a message to stdout and/or appends a message to Log filename.
 # Returns:
-#   0 if message outputted to stdout and/or appended to log file; otherwise, 
+#   0 if message outputted to stdout and/or appended to log file; otherwise,
 #   non-zero on error.
 ################################################################################
 function log::_output_format() {
@@ -527,7 +527,7 @@ function log::_output_format() {
 # Outputs:
 #   Writes message(s) to stdout.
 # Returns:
-#   0 if message(s) outputted to stdout and/or appended to log file; otherwise, 
+#   0 if message(s) outputted to stdout and/or appended to log file; otherwise,
 #   non-zero on error.
 ################################################################################
 function log::_output_parameter() {
@@ -550,7 +550,7 @@ function log::_output_parameter() {
 # Outputs:
 #   Writes message(s) to stdout.
 # Returns:
-#   0 if message(s) outputted to stdout and/or appended to log file; otherwise, 
+#   0 if message(s) outputted to stdout and/or appended to log file; otherwise,
 #   non-zero on error.
 ################################################################################
 function log::_output_piped() {
@@ -575,7 +575,7 @@ function log::_output_piped() {
 # Outputs:
 #   Writes message(s) to stdout/; writes error message(s) to stderr.
 # Returns:
-#   0 if message(s) outputted to stdout and/or appended to log file; otherwise, 
+#   0 if message(s) outputted to stdout and/or appended to log file; otherwise,
 #   non-zero on error.
 ################################################################################
 function log::output() {

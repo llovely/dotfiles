@@ -107,16 +107,16 @@ function brew::install() {
 function brew::install_formula() {
   local formula="$1"
 
-  if brew::formula_installed "${formula}" &> /dev/null; then
+  if brew::installed_formula "${formula}" &> /dev/null; then
     echo "'${formula}' formula is already installed, reinstalling."
-    if ! brew reinstall --verbose --formula "${formula}"; then
+    if ! brew reinstall --formula "${formula}"; then
       [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
       echo "ERROR: ${FUNCNAME[0]}() failed. Unable to reinstall" \
            "'${formula}' formula." >&2
       return 1
     fi
   else
-    if ! brew install --verbose --formula "${formula}"; then
+    if ! brew install --formula "${formula}"; then
       [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
       echo "ERROR: ${FUNCNAME[0]}() failed. Unable to install" \
            "'${formula}' formula." >&2
@@ -141,16 +141,16 @@ function brew::install_formula() {
 function brew::install_cask() {
   local cask="$1"
 
-  if brew::cask_installed "${cask}" &> /dev/null; then
+  if brew::installed_cask "${cask}" &> /dev/null; then
     echo "'${cask}' cask is already installed, reinstalling."
-    if ! brew reinstall --verbose --cask --require-sha "${cask}"; then
+    if ! brew reinstall --cask --require-sha "${cask}"; then
       [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
       echo "ERROR: ${FUNCNAME[0]}() failed. Unable to reinstall" \
            "'${cask}' cask." >&2
       return 1
     fi
   else
-    if ! brew install --verbose --cask --require-sha "${cask}"; then
+    if ! brew install --cask --require-sha "${cask}"; then
       [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
       echo "ERROR: ${FUNCNAME[0]}() failed. Unable to install" \
            "'${cask}' cask." >&2

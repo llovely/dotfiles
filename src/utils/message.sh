@@ -38,6 +38,6 @@ function err_msg() {
 ################################################################################
 function out_msg() {
   local messages="$*"
-  
+
   [[ "${DISPLAY_OUTPUT_MSG}" == 'true' ]] && printf "${messages}\n"
 }

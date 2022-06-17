@@ -1,7 +1,7 @@
 #
 # Various escape sequences used in shell text output.
 #
-# This script MUST be sourced into an existing shell function to work 
+# This script MUST be sourced into an existing shell function to work
 # properly; this is due to the use of 'local' variables.
 #
 
@@ -49,7 +49,7 @@ if [[ -x "/usr/bin/tput" ]] && tput setaf &> /dev/null; then
   ES_BLINK="$(tput blink)"
   ES_REVERSE="$(tput rev)"
   ES_HIDDEN="$(tput invis)"
-  
+
 # Otherwise, use ANSI escape sequences.
 else
   # ANSI functions to obtain foreground/background color sequences

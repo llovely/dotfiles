@@ -1,0 +1,494 @@
+#!/usr/bin/env bash
+#
+# Installation Script
+#
+
+
+################################################################################
+#                     START: Script Restriction Checks
+################################################################################
+
+# TODO: Conditional WAS NOT tested to check if compliant with Bash versions < 3.
+# Ensures that this script can execute correctly on this version of Bash.
+if ! test $BASH_VERSINFO -ge "3"; then
+  echo "ERROR: This script needs to be executed with Bash Version 3 or" \
+       "higher." 1>&2
+  exit 1
+fi
+
+# Ensures that the script is not executed with sudo.
+if [[ -n "${SUDO_USER}" ]]; then
+  echo "ERROR: Do not execute this script with sudo." >&2
+  exit 1
+fi
+
+################################################################################
+#                       END: Script Restriction Checks
+################################################################################
+
+
+# Global Constants
+readonly DOTFILES_DIR="${HOME}/.dotfiles_temp"
+readonly DOTFILES_GIT_TARBALL='https://github.com/llovely/dotfiles/tarball/main'
+readonly DOTFILES_GIT_REMOTE='https://github.com/llovely/llovely/dotfiles.git'
+SYS_OS_TYPE=''          # Set to readonly after parsing command-line arguments 
+DOTFILES_SYNC='true'    # Set to readonly after parsing command-line arguments  
+readonly INSTALL_SCRIPT_DISPLAY_ERR_MSG='true'
+
+
+# Globals
+INSTALL_SCRIPT_BREW_INSTALLED='false'
+INSTALL_SCRIPT_XCODE_INSTALLED='false'
+INSTALL_SCRIPT_GIT_INSTALLED='false'
+
+
+
+# Displays usage information
+function usage() {
+  return 1
+}
+
+
+################################################################################
+# Installs Homebrew.
+# Globals:
+#   INSTALL_SCRIPT_BREW_INSTALLED
+# Arguments:
+#   None
+# Outputs:
+#   Writes installation steps to stdout; writes error message(s) to stderr.
+# Returns:
+#   0 if Homebrew installed successfully; otherwise, non-zero on error.
+################################################################################
+function install_homebrew() {
+  out_msg "\nInstalling Homebrew..."
+  if brew::installed &> /dev/null; then
+    out_msg "Homebrew is already installed!"
+  else
+    brew::install || return 1
+    out_msg "Homebrew is installed!"
+  fi
+
+  INSTALL_SCRIPT_BREW_INSTALLED='true'
+}
+
+
+################################################################################
+# Verifies that Xcode Command Line Tools and/or Application is installed.
+# Globals:
+#   FUNCNAME
+#   XCODE_APP_PATH
+#   INSTALL_SCRIPT_XCODE_INSTALLED
+#   INSTALL_SCRIPT_BREW_INSTALLED 
+# Arguments:
+# Outputs:
+# Returns:
+################################################################################
+function verify_xcode() {
+  local xcode_path
+
+  out_msg "\nVerifying Xcode Command Line Tools..."
+
+  xcode_path="$(xcode::get_path)"
+  (( $? != 0 )) && return 1
+
+  if xcode::installed &> /dev/null; then
+    if xcode::installed_app &> /dev/null; then
+      out_msg "Xcode Application detected! Setting up..."
+      xcode::reset > /dev/null || return 1
+      xcode::switch "${XCODE_APP_PATH}" > /dev/null || return 1
+      xcode::accept_license > /dev/null || return 1
+      INSTALL_SCRIPT_XCODE_INSTALLED='true'
+      out_msg "Xcode Command Line Tools (through Xcode Application) are" \
+              "ready for use."
+    elif xcode::installed_clt &> /dev/null; then
+      out_msg "Xcode Command Line Tools detected! Setting up..."
+      xcode::reset > /dev/null || return 1
+      xcode::switch "${XCODE_CLT_PATH}" > /dev/null || return 1
+      INSTALL_SCRIPT_XCODE_INSTALLED='true'
+      out_msg "Xcode Command Line Tools are ready for use."
+    else
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown active developer" \
+              "directory '${xcode_path}' found." >&2
+      return 1
+    fi 
+  else
+    if [[ "${INSTALL_SCRIPT_BREW_INSTALLED}" == 'true' ]]; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Xcode Command Line Tools" \
+              "should have been installed with Homebrew." >&2     
+    fi
+    out_msg "\nPlease install Xcode Command Line Tools manually to proceed." \
+            "The easiest way to install would be to download the Xcode" \
+            "application through the Mac App Store or by executing the" \
+            "following command in terminal:\n"
+    out_msg "   xcode-select --install"
+    return 1
+  fi
+}
+
+
+################################################################################
+# Verifies that the APT package manager is present.
+# Globals:
+#   FUNCNAME
+# Arguments:
+#   None
+# Outputs:
+#   Writes error message(s) to stderr.
+# Returns:
+#   1
+################################################################################
+function verify_apt() {
+  err_msg "ERROR: ${FUNCNAME[0]}() failed. NOT IMPLEMENTED."
+  return 1
+}
+
+
+################################################################################
+# Verifies that the associated package managers of the supported OS's are
+# present and have access to necessary packages to function properly.
+# Globals:
+#   FUNCNAME
+#   SYS_OS_TYPE
+#   OS_NAME_MACOS
+#   OS_NAME_DEBIAN
+#   OS_NAME_UBUNTU
+# Arguments:
+#   None
+# Outputs:
+#   Writes installation/verification steps to stdout; writes error message(s) to
+#   stderr.
+# Returns:
+#   0 if package manager present with associated helper utilities; otherwise, 
+#   non-zero on error.
+################################################################################
+function verify_pkg_mgr_and_helper_utils() {
+  case "${SYS_OS_TYPE}" in
+    "${OS_NAME_MACOS}")
+      install_homebrew || exit 1
+      verify_xcode || exit 1
+      ;;
+    "${OS_NAME_DEBIAN}"|"${OS_NAME_UBUNTU}")
+      verify_apt || exit 1
+      ;;
+    *) # Unsupported OS type
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown OS type encountered."
+      exit 1
+      ;;
+  esac
+}
+
+
+################################################################################
+# Install git (installation differs based on supported OS).
+# Globals:
+#   FUNCNAME
+#   SYS_OS_TYPE
+#   OS_NAME_MACOS
+#   OS_NAME_DEBIAN
+#   OS_NAME_UBUNTU
+# Arguments:
+#   None
+# Outputs:
+#   Writes installation steps to stdout; writes error message(s) to stderr.
+# Returns:
+#   0 if git installed successfully; otherwise, non-zero on error.
+################################################################################
+function install_git() {
+  out_msg "\nInstalling git..."
+
+  case "${SYS_OS_TYPE}" in
+    "${OS_NAME_MACOS}")
+      brew::install_formula 'git' || return 1
+      ;;
+    "${OS_NAME_DEBIAN}"|"${OS_NAME_UBUNTU}")
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. NOT IMPLEMENTED."
+      return 1
+      ;;
+    *) # Unsupported OS type
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown OS type encountered."
+      return 1
+      ;;
+  esac
+
+  out_msg "git is installed, and ready for use!"
+}
+
+
+################################################################################
+# Downloads and unpacks Dotfile repository tarball into created Dotfiles
+# directory.
+# Globals:
+#   HOME
+#   FUNCNAME
+#   DOTFILES_DIR
+#   DOTFILES_GIT_TARBALL
+# Arguments:
+#   None
+# Outputs:
+#   Writes download and setup steps to stdout; writes error message(s) to
+#   stderr.
+# Returns:
+#   0 if Dotfiles repo unpacked successfully; otherwise, non-zero on error.
+################################################################################
+function dotfiles_get_repo() {
+  local -r dotfiles_dir='dotfiles'
+  local -r dotfiles_tar='/tmp/dotfiles.tar.gz'
+  local curr_dir
+
+  printf "\nVerifying if '${DOTFILES_DIR}' directory is present...\n"
+
+  # Determines current working directory.
+  curr_dir="$(pwd -P 2> /dev/null)"
+  if (( $? != 0 )); then
+    printf "ERROR: ${FUNCNAME[0]}() failed. Unable to determine current" \
+           "working directory.\n" >&2
+    return 1
+  fi
+
+  # Checks if Dotfiles directory is already present (even as a symlink)
+  if ! [[ -d "${DOTFILES_DIR}" || -L "${DOTFILES_DIR}" ]]; then
+    printf "'${DOTFILES_DIR}' directory is not present!\n"
+
+    # Create Dotfiles directory
+    if [[ "${curr_dir}}" != "${HOME}" ]]; then
+      printf "HOME directory is not the current working directory; creating"
+             "'${dotfiles_dir}' directory in '${curr_dir}'...\n"
+      if ! mkdir "${dotfiles_dir}"; then
+        printf "ERROR: ${FUNCNAME[0]}() failed. Unable to create" \
+               "'${curr_dir}/${dotfiles_dir}' directory.\n" >&2
+        return 1
+      fi
+      printf "'${curr_dir}/${dotfiles_dir}' directory created!\n"
+      
+      printf "Creating symlink from '"${curr_dir}/${dotfiles_dir}"' ->" \
+             "'"${DOTFILES_DIR}"'...\n"
+      if ! ln -sf "${curr_dir}/${dotfiles_dir}" "${DOTFILES_DIR}"; then
+        printf "ERROR: ${FUNCNAME[0]}() failed. Unable to create symlink.\n" >&2
+        return 1
+      fi
+      printf "Symlink successfully created!\n"
+    else
+      printf "Creating '.dotfiles' directory in '${HOME}' directory...\n"
+      if ! mkdir "${DOTFILES_DIR}"; then
+        printf "ERROR: ${FUNCNAME[0]}() failed. Unable to create" \
+               "'${DOTFILES_DIR}' directory.\n" >&2
+        return 1
+      fi
+      printf "'${DOTFILES_DIR}' directory created!\n" 
+    fi
+    printf "Dotfiles directory can be accessed from '${DOTFILES_DIR}'.\n"
+    
+
+    # Download Dotfiles tarball
+    printf "Downloading Dotfiles repository tarball from" \
+           "'${DOTFILES_GIT_TARBALL}'...\n"
+    if curl -fsSL ${DOTFILES_GIT_TARBALL} -o "${dotfiles_tar}"; then
+      printf "ERROR: ${FUNCNAME[0]}() failed. Failed to obtain" \
+             "Dotfiles repository tarball.\n" >&2
+      return 1
+    fi
+    printf "Dotfiles tarball downloaded successfully; tarball found at" \
+           "'${dotfiles_tar}'.\n"
+
+
+    # Unpack Dotfiles tarball into Dotfiles directory
+    printf "Unpacking contents of '${dotfiles_tar}' into '${DOTFILES_DIR}'...\n"
+    tar -zxf "${dotfiles_tar}" --strip-components 1 -C "${DOTFILES_DIR}"
+    if (( $? != 0 )); then
+      printf "ERROR: ${FUNCNAME[0]}() failed. Failed to unpack tarball" \
+             "'${dotfiles_tar}' into '${DOTFILES_DIR}'.\n" >&2
+      return 1
+    fi
+    printf "Tarball successfully unpacked!\n"
+
+
+    # Remove the downloaded Dotfiles tarball
+    printf "Deleting tarball '${dotfiles_tar}'...\n"
+    if ! rm -rf "${dotfiles_tar}" 2> /dev/null; then
+      printf "ERROR: ${FUNCNAME[0]}() failed. Failed to delete" \
+             "'${dotfiles_tar}'.\n" >&2
+      return 1
+    fi
+    printf "Tarball successfully deleted!\n"
+    return 0
+  fi
+
+  printf "'${DOTFILES_DIR}' directory is already present!\n"
+}
+
+
+################################################################################
+# Sets up Dotfiles directory as a git repository (main branch as remote).
+# Globals:
+#   FUNCNAME
+#   DOTFILES_DIR
+#   DOTFILES_GIT_REMOTE
+# Arguments:
+#   None
+# Outputs:
+#   Writes git repo setup steps to stdout; writes error message(s) to stderr.
+# Returns:
+#   0 if Dotfiles directory successfully setup as a git repository; otherwise,
+#   non-zero on error.
+################################################################################
+function dotfiles_init_repo() {
+  out_msg "\nVerifying if '${DOTFILES_DIR}' directory is a git repository..."
+
+  if ! git rev-parse --is-inside-work-tree &> /dev/null; then
+    out_msg "'${DOTFILES_DIR}' directory is not a git repository!"
+
+    # Initialize Dotfiles directory as git repo
+    out_msg "Initializing '${DOTFILES_DIR}' directory as a local git" 
+            "repository..."
+    if ! git init; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to initialize" \
+              "'${DOTFILES_DIR}' directory as a local git repository."
+      return 1
+    fi
+    out_msg "'${DOTFILES_DIR}' directory is now a local git repository!"
+
+
+    # Add Dotfiles Github repository as remote origin
+    out_msg "Adding '${DOTFILES_GIT_REMOTE}' as the remote origin..."
+    if ! git remote add origin ${DOTFILES_GIT_REMOTE}; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to add" \
+              "'${DOTFILES_GIT_REMOTE}' as the remote origin."
+      return 1
+    fi
+    out_msg "'${DOTFILES_GIT_REMOTE}' is now the remote origin!"
+    
+
+    # Fetch changes from main branch 
+    out_msg "Fetching changes from main branch of remote origin..."
+    if ! git fetch origin main; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to fetch" \
+              "changes from main branch of remote origin."
+      return 1 
+    fi
+    out_msg "Changes successfully fetched from main branch!"
+
+
+    # Reset the index and working tree to the fetched HEAD
+    out_msg "Reverting to fetched HEAD commit (undoes uncommitted local" \
+            "changes)..."
+    if ! git reset --hard FETCH_HEAD; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to revert to fetched" \
+              "HEAD commit."
+      return 1
+    fi
+    out_msg "Reverting to fetched HEAD commit successful!"
+
+
+    # Remove all untracked files
+    out_msg "Removing all untracked files..."
+    if ! git clean -fd; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to remove all untracked" \
+              "files." 
+      return 1
+    fi
+    out_msg "Succesfully removed all untracked files!"
+    return 0
+  fi
+
+  out_msg "'${DOTFILES_DIR}' is already a git repository!"
+}
+
+
+################################################################################
+# Synchronizes changes from main branch of remote Dotfiles repository.
+# Globals:
+#   FUNCNAME
+#   DOTFILES_DIR
+#   DOTFILES_GIT_REMOTE
+# Arguments:
+#   None
+# Outputs:
+#   Writes git repo setup steps to stdout; writes error message(s) to stderr.
+# Returns:
+#   0 if Dotfiles directory successfully setup as a git repository; otherwise,
+#   non-zero on error.
+################################################################################
+function dotfiles_sync_repo() {
+  if false; then
+
+    return 0
+  fi
+}
+
+
+# Entry point of this script.
+function main() {
+
+  # Downloads contents of the Dotfiles git repository
+  dotfiles_get_repo || exit 1
+
+  ##############################################################################
+  #                   START: Process Command Line Arguments
+  ##############################################################################
+
+  ##############################################################################
+  #                     END: Process Command Line Arguments
+  ##############################################################################
+  readonly DOTFILES_SYNC='false'  
+
+
+  # Enter Dotfiles directory
+  cd "${DOTFILES_DIR}"
+
+
+  # Imports Libraries
+  source "${DOTFILES_DIR}/src/lib/brew.sh"
+  source "${DOTFILES_DIR}/src/lib/mrac.sh"
+  source "${DOTFILES_DIR}/src/lib/os.sh"
+  source "${DOTFILES_DIR}/src/lib/xcode.sh"
+
+
+  # Imports Utilities
+  source "${DOTFILES_DIR}/src/utils/message.sh"
+
+
+  # Configures global variables from libraries/utilities
+  readonly BREW_BUNDLE_DIR="${DOTFILES_DIR}/packages"
+  readonly BREW_DISPLAY_ERR_MSG='true'
+  readonly MRAC_DISPLAY_ERR_MSG='true'
+  readonly OS_DISPLAY_ERR_MSG='true'
+  readonly XCODE_DISPLAY_ERR_MSG='true'
+
+  readonly DISPLAY_ERROR_MSG='true'
+  readonly DISPLAY_OUTPUT_MSG='true'
+
+
+  # Maintain sudo for the duration of this script
+  mrac::start_and_maintain || exit 1
+
+
+  # Ensures that only supported OS's run this script
+  os::supported || exit 1
+
+
+  # Obtains OS's lineage/type
+  SYS_OS_TYPE="$(os::type)"
+  (( $? != 0 )) && exit 1
+  readonly SYS_OS_TYPE
+
+
+  # Ensures that the OS's package manager is present and has all necessary
+  # packages/utilities to function properly
+  verify_pkg_mgr_and_helper_utils || exit 1
+
+
+  # Installs git
+  install_git || exit 1
+
+
+  # Initialize Dotfiles directory as a local git repository
+  dotfiles_init_repo || exit 1
+
+  
+  echo ">>> DONE <<<"
+  exit 0
+}
+
+
+main "$@"

@@ -476,8 +476,6 @@ function main() {
       -f|--force)
         INSTALL_ARG_FORCE='true'
         ;;
-      -r|--rac-renew)  # Renew root authentication credentials
-        ;;
       -b|--bash-exec)
         shift
         if (( $# == 0 )); then
@@ -535,7 +533,7 @@ function main() {
 
   # Displays usage information, if requested
   [[ "${INSTALL_ARG_HELP}" == 'true' ]] && { usage; exit 0; }
-  exit 1
+  # exit 1
 
 
   # Downloads contents of the Dotfiles git repository
@@ -568,6 +566,7 @@ function main() {
 
 
   # Maintain sudo for the duration of this script
+  ! mrac::renew &> /dev/null && out_msg  # Adds newline prior to sudo prompt
   mrac::start_and_maintain || exit 1
 
 

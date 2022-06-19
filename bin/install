@@ -295,85 +295,85 @@ function dotfiles_get_repo() {
   local -r dotfiles_tar='/tmp/dotfiles.tar.gz'
   local curr_dir
 
-  printf "\nVerifying if '${DOTFILES_DIR}' directory is present...\n"
+  out_msg "\nVerifying if '${DOTFILES_DIR}' directory is present..."
 
   # Determines current working directory.
   curr_dir="$(pwd -P 2> /dev/null)"
   if (( $? != 0 )); then
-    printf "ERROR: ${FUNCNAME[0]}() failed. Unable to determine current" \
-           "working directory.\n" >&2
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to determine current" \
+            "working directory."
     return 1
   fi
 
   # Checks if Dotfiles directory is already present (even as a symlink)
   if ! [[ -d "${DOTFILES_DIR}" || -L "${DOTFILES_DIR}" ]]; then
-    printf "'${DOTFILES_DIR}' directory is not present!\n"
+    out_msg "'${DOTFILES_DIR}' directory is not present!"
 
     # Create Dotfiles directory
     if [[ "${curr_dir}}" != "${HOME}" ]]; then
-      printf "HOME directory is not the current working directory; creating"
-             "'${dotfiles_dir}' directory in '${curr_dir}'...\n"
+      out_msg "HOME directory is not the current working directory; creating"
+              "'${dotfiles_dir}' directory in '${curr_dir}'..."
       if ! mkdir "${dotfiles_dir}"; then
-        printf "ERROR: ${FUNCNAME[0]}() failed. Unable to create" \
-               "'${curr_dir}/${dotfiles_dir}' directory.\n" >&2
+        err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to create" \
+                "'${curr_dir}/${dotfiles_dir}' directory."
         return 1
       fi
-      printf "'${curr_dir}/${dotfiles_dir}' directory created!\n"
+      out_msg "'${curr_dir}/${dotfiles_dir}' directory created!"
 
-      printf "Creating symlink from '"${curr_dir}/${dotfiles_dir}"' ->" \
-             "'"${DOTFILES_DIR}"'...\n"
+      out_msg "Creating symlink from '"${curr_dir}/${dotfiles_dir}"' ->" \
+              "'"${DOTFILES_DIR}"'..."
       if ! ln -sf "${curr_dir}/${dotfiles_dir}" "${DOTFILES_DIR}"; then
-        printf "ERROR: ${FUNCNAME[0]}() failed. Unable to create symlink.\n" >&2
+        err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to create symlink."
         return 1
       fi
-      printf "Symlink successfully created!\n"
+      out_msg "Symlink successfully created!"
     else
-      printf "Creating '.dotfiles' directory in '${HOME}' directory...\n"
+      out_msg "Creating '.dotfiles' directory in '${HOME}' directory..."
       if ! mkdir "${DOTFILES_DIR}"; then
-        printf "ERROR: ${FUNCNAME[0]}() failed. Unable to create" \
-               "'${DOTFILES_DIR}' directory.\n" >&2
+        err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to create" \
+                "'${DOTFILES_DIR}' directory."
         return 1
       fi
-      printf "'${DOTFILES_DIR}' directory created!\n"
+      out_msg "'${DOTFILES_DIR}' directory created!"
     fi
-    printf "Dotfiles directory can be accessed from '${DOTFILES_DIR}'.\n"
+    out_msg "Dotfiles directory can be accessed from '${DOTFILES_DIR}'."
 
 
     # Download Dotfiles tarball
-    printf "Downloading Dotfiles repository tarball from" \
-           "'${DOTFILES_GIT_TARBALL}'...\n"
+    out_msg "Downloading Dotfiles repository tarball from" \
+            "'${DOTFILES_GIT_TARBALL}'..."
     if curl -fsSL ${DOTFILES_GIT_TARBALL} -o "${dotfiles_tar}"; then
-      printf "ERROR: ${FUNCNAME[0]}() failed. Failed to obtain" \
-             "Dotfiles repository tarball.\n" >&2
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to obtain" \
+              "Dotfiles repository tarball."
       return 1
     fi
-    printf "Dotfiles tarball downloaded successfully; tarball found at" \
-           "'${dotfiles_tar}'.\n"
+    out_msg "Dotfiles tarball downloaded successfully; tarball found at" \
+            "'${dotfiles_tar}'."
 
 
     # Unpack Dotfiles tarball into Dotfiles directory
-    printf "Unpacking contents of '${dotfiles_tar}' into '${DOTFILES_DIR}'...\n"
+    out_msg "Unpacking contents of '${dotfiles_tar}' into '${DOTFILES_DIR}'..."
     tar -zxf "${dotfiles_tar}" --strip-components 1 -C "${DOTFILES_DIR}"
     if (( $? != 0 )); then
-      printf "ERROR: ${FUNCNAME[0]}() failed. Failed to unpack tarball" \
-             "'${dotfiles_tar}' into '${DOTFILES_DIR}'.\n" >&2
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to unpack tarball" \
+              "'${dotfiles_tar}' into '${DOTFILES_DIR}'."
       return 1
     fi
-    printf "Tarball successfully unpacked!\n"
+    out_msg "Tarball successfully unpacked!"
 
 
     # Remove the downloaded Dotfiles tarball
-    printf "Deleting tarball '${dotfiles_tar}'...\n"
+    out_msg "Deleting tarball '${dotfiles_tar}'..."
     if ! rm -rf "${dotfiles_tar}" 2> /dev/null; then
-      printf "ERROR: ${FUNCNAME[0]}() failed. Failed to delete" \
-             "'${dotfiles_tar}'.\n" >&2
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to delete" \
+              "'${dotfiles_tar}'."
       return 1
     fi
-    printf "Tarball successfully deleted!\n"
+    out_msg "Tarball successfully deleted!"
     return 0
   fi
 
-  printf "'${DOTFILES_DIR}' directory is already present!\n"
+  out_msg "'${DOTFILES_DIR}' directory is already present!"
 }
 
 

@@ -31,6 +31,29 @@ MRAC_DISPLAY_ERR_MSG='true'
 
 
 ################################################################################
+# Renews root authentication credentials.
+# Globals:
+#   FUNCNAME
+#   MRAC_DISPLAY_ERR_MSG
+# Arguments:
+#   None
+# Outputs:
+#   Writes error message(s) to stderr.
+# Returns:
+#   0 if root authentication credentials were renewed; otherwise, non-zero on
+#   error.
+################################################################################
+function mrac::renew() {
+  if ! sudo -nv &> /dev/null; then
+    [[ "${MRAC_DISPLAY_ERR_MSG}" == 'true' ]] && \
+    echo "ERROR: ${FUNCNAME[0]}() failed. Root authentication credentials" \
+         "were not obtained or have expired." >&2
+    return 1
+  fi
+}
+
+
+################################################################################
 # Obtains root authentication credentials.
 # Globals:
 #   FUNCNAME
@@ -40,8 +63,8 @@ MRAC_DISPLAY_ERR_MSG='true'
 # Outputs:
 #   Writes password prompt(s) to stdout; writes error message(s) to stderr.
 # Returns:
-#   0 if root authentication credentials were provided; otherwise,
-#   non-zero on error.
+#   0 if root authentication credentials were provided; otherwise, non-zero
+#   on error.
 ################################################################################
 function mrac::start() {
   sudo -p "%p, please enter your password to continue: " true &> /dev/null
@@ -74,12 +97,13 @@ function mrac::start() {
 ################################################################################
 function mrac::maintain() {
   # Verify that the user's credentials have not expired
-  if ! sudo -nv &> /dev/null; then
+  if ! mrac::renew &> /dev/null; then
     [[ "${MRAC_DISPLAY_ERR_MSG}" == 'true' ]] && \
     echo "ERROR: ${FUNCNAME[0]}() failed. Root authentication credentials" \
          "were not obtained or have expired." >&2
     return 1
   fi
+
 
   # Maintains root authentication credentials in a background command
   if (( $MRAC_PID == $MRAC_PID_UNUSED )); then

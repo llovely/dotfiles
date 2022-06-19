@@ -31,9 +31,15 @@ fi
 readonly DOTFILES_DIR="${HOME}/.dotfiles_temp"
 readonly DOTFILES_GIT_TARBALL='https://github.com/llovely/dotfiles/tarball/main'
 readonly DOTFILES_GIT_REMOTE='https://github.com/llovely/llovely/dotfiles.git'
-SYS_OS_TYPE=''          # Set to readonly after parsing command-line arguments 
-DOTFILES_SYNC='true'    # Set to readonly after parsing command-line arguments  
 readonly INSTALL_SCRIPT_DISPLAY_ERR_MSG='true'
+INSTALL_ARG_ERROR='false'     # Set to readonly after parsing arguments
+INSTALL_ARG_HELP='false'      # Set to readonly after parsing arguments
+INSTALL_ARG_FORCE='false'     # Set to readonly after parsing arguments
+INSTALL_ARG_SYNC='false'      # Set to readonly after parsing arguments
+INSTALL_ARG_PACKAGES='true'   # Set to readonly after parsing arguments
+INSTALL_ARG_BASH_EXEC=''      # Set to readonly after parsing arguments
+INSTALL_ARG_DOTFILES='true'   # Set to readonly after parsing arguments
+INSTALL_OS_TYPE=''            # Set to readonly after being set
 
 
 # Globals
@@ -42,10 +48,21 @@ INSTALL_SCRIPT_XCODE_INSTALLED='false'
 INSTALL_SCRIPT_GIT_INSTALLED='false'
 
 
-
 # Displays usage information
 function usage() {
-  return 1
+  cat <<-__EOF__
+Usage: ${0##*/} [options]
+
+Description:
+
+  This is only a test...
+
+Options:
+
+  -h, --help
+  -f, --force
+  -b, --bash-exec
+__EOF__
 }
 
 
@@ -79,7 +96,7 @@ function install_homebrew() {
 #   FUNCNAME
 #   XCODE_APP_PATH
 #   INSTALL_SCRIPT_XCODE_INSTALLED
-#   INSTALL_SCRIPT_BREW_INSTALLED 
+#   INSTALL_SCRIPT_BREW_INSTALLED
 # Arguments:
 # Outputs:
 # Returns:
@@ -111,11 +128,11 @@ function verify_xcode() {
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown active developer" \
               "directory '${xcode_path}' found." >&2
       return 1
-    fi 
+    fi
   else
     if [[ "${INSTALL_SCRIPT_BREW_INSTALLED}" == 'true' ]]; then
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Xcode Command Line Tools" \
-              "should have been installed with Homebrew." >&2     
+              "should have been installed with Homebrew." >&2
     fi
     out_msg "\nPlease install Xcode Command Line Tools manually to proceed." \
             "The easiest way to install would be to download the Xcode" \
@@ -149,7 +166,7 @@ function verify_apt() {
 # present and have access to necessary packages to function properly.
 # Globals:
 #   FUNCNAME
-#   SYS_OS_TYPE
+#   INSTALL_OS_TYPE
 #   OS_NAME_MACOS
 #   OS_NAME_DEBIAN
 #   OS_NAME_UBUNTU
@@ -159,11 +176,11 @@ function verify_apt() {
 #   Writes installation/verification steps to stdout; writes error message(s) to
 #   stderr.
 # Returns:
-#   0 if package manager present with associated helper utilities; otherwise, 
+#   0 if package manager present with associated helper utilities; otherwise,
 #   non-zero on error.
 ################################################################################
 function verify_pkg_mgr_and_helper_utils() {
-  case "${SYS_OS_TYPE}" in
+  case "${INSTALL_OS_TYPE}" in
     "${OS_NAME_MACOS}")
       install_homebrew || exit 1
       verify_xcode || exit 1
@@ -183,7 +200,7 @@ function verify_pkg_mgr_and_helper_utils() {
 # Install git (installation differs based on supported OS).
 # Globals:
 #   FUNCNAME
-#   SYS_OS_TYPE
+#   INSTALL_OS_TYPE
 #   OS_NAME_MACOS
 #   OS_NAME_DEBIAN
 #   OS_NAME_UBUNTU
@@ -197,7 +214,7 @@ function verify_pkg_mgr_and_helper_utils() {
 function install_git() {
   out_msg "\nInstalling git..."
 
-  case "${SYS_OS_TYPE}" in
+  case "${INSTALL_OS_TYPE}" in
     "${OS_NAME_MACOS}")
       brew::install_formula 'git' || return 1
       ;;
@@ -211,7 +228,7 @@ function install_git() {
       ;;
   esac
 
-  out_msg "git is installed, and ready for use!"
+  out_msg "git is installed and ready for use!"
 }
 
 
@@ -260,7 +277,7 @@ function dotfiles_get_repo() {
         return 1
       fi
       printf "'${curr_dir}/${dotfiles_dir}' directory created!\n"
-      
+
       printf "Creating symlink from '"${curr_dir}/${dotfiles_dir}"' ->" \
              "'"${DOTFILES_DIR}"'...\n"
       if ! ln -sf "${curr_dir}/${dotfiles_dir}" "${DOTFILES_DIR}"; then
@@ -275,10 +292,10 @@ function dotfiles_get_repo() {
                "'${DOTFILES_DIR}' directory.\n" >&2
         return 1
       fi
-      printf "'${DOTFILES_DIR}' directory created!\n" 
+      printf "'${DOTFILES_DIR}' directory created!\n"
     fi
     printf "Dotfiles directory can be accessed from '${DOTFILES_DIR}'.\n"
-    
+
 
     # Download Dotfiles tarball
     printf "Downloading Dotfiles repository tarball from" \
@@ -339,7 +356,7 @@ function dotfiles_init_repo() {
     out_msg "'${DOTFILES_DIR}' directory is not a git repository!"
 
     # Initialize Dotfiles directory as git repo
-    out_msg "Initializing '${DOTFILES_DIR}' directory as a local git" 
+    out_msg "Initializing '${DOTFILES_DIR}' directory as a local git"
             "repository..."
     if ! git init; then
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to initialize" \
@@ -357,14 +374,14 @@ function dotfiles_init_repo() {
       return 1
     fi
     out_msg "'${DOTFILES_GIT_REMOTE}' is now the remote origin!"
-    
 
-    # Fetch changes from main branch 
+
+    # Fetch changes from main branch
     out_msg "Fetching changes from main branch of remote origin..."
     if ! git fetch origin main; then
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to fetch" \
               "changes from main branch of remote origin."
-      return 1 
+      return 1
     fi
     out_msg "Changes successfully fetched from main branch!"
 
@@ -384,10 +401,21 @@ function dotfiles_init_repo() {
     out_msg "Removing all untracked files..."
     if ! git clean -fd; then
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to remove all untracked" \
-              "files." 
+              "files."
       return 1
     fi
     out_msg "Succesfully removed all untracked files!"
+
+
+    # Initialize all submodules
+    out_msg ""
+    if ! git submodule update --init --recursive; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to remove all untracked" \
+              "files."
+      return 1
+    fi
+    out_msg ""
+
     return 0
   fi
 
@@ -410,8 +438,25 @@ function dotfiles_init_repo() {
 #   non-zero on error.
 ################################################################################
 function dotfiles_sync_repo() {
-  if false; then
+  if [[ "${INSTALL_ARG_SYNC}" == 'true' ]]; then
+    out_msg "\nSynchronizing with remote Dotfiles repository..."
 
+    # Pull latest changes
+    out_msg "Attempting to pull latest changes..."
+    if git pull --rebase --auto-stash origin main; then
+      out_msg "Latest changes successfully pulled!"
+    else
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to pull latest changes" \
+              "OR merge conflicts need to be resolved separately."
+    fi
+
+    # Initializing and/or pulling latest changes on submodules
+    out_msg ""
+    git submodule update --init --recursive --remote --merge --force
+    if (( $? != 0 )); then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to update submodules."
+      return 1
+    fi
     return 0
   fi
 }
@@ -420,17 +465,81 @@ function dotfiles_sync_repo() {
 # Entry point of this script.
 function main() {
 
+  # Parses command line arguments
+  local opt
+  while (( $# > 0 )); do
+    opt="$1"
+    case "${opt}" in
+      -h|--help)
+        INSTALL_ARG_HELP='true'
+        ;;
+      -f|--force)
+        INSTALL_ARG_FORCE='true'
+        ;;
+      -r|--rac-renew)  # Renew root authentication credentials
+        ;;
+      -b|--bash-exec)
+        shift
+        if (( $# == 0 )); then
+          printf "ERROR: ${opt} option expected a path arguement.\n" >&2
+          INSTALL_ARG_ERROR='true'
+          break
+        fi
+        case "$1" in
+          -*|--*)
+            printf "ERROR: ${opt} option expected a path arguement.\n" >&2
+            INSTALL_ARG_ERROR='true'
+            break
+            ;;
+          *)
+            if [[ -z "$1" ]]; then
+              printf "ERROR: ${opt} option provided with empty string.\n" >&2
+              INSTALL_ARG_ERROR='true'
+              break
+            fi
+            INSTALL_ARG_BASH_EXEC="$1"
+            ;;
+        esac
+        ;;
+      --no-packages)
+        INSTALL_ARG_PACKAGES='false'
+        ;;
+      --sync)
+        INSTALL_ARG_SYNC='true'
+        ;;
+      -*|--*)
+        echo "ERROR: Illegal option '${opt}' provided." >&2
+        INSTALL_ARG_ERROR='true'
+        break
+        ;;
+      *)
+        printf "ERROR: Unknown option '${opt}' provided." >&2
+        INSTALL_ARG_ERROR='true'
+        break
+        ;;
+    esac
+    shift
+  done
+  readonly INSTALL_ARG_ERROR
+  readonly INSTALL_ARG_HELP
+  readonly INSTALL_ARG_FORCE
+  readonly INSTALL_ARG_SYNC
+  readonly INSTALL_ARG_PACKAGES
+  readonly INSTALL_ARG_BASH_EXEC
+  readonly INSTALL_ARG_DOTFILES
+
+
+  # Displays usage information when invalid option(s) provided
+  [[ "${INSTALL_ARG_ERROR}" == 'true' ]] && { usage; exit 1; }
+
+
+  # Displays usage information, if requested
+  [[ "${INSTALL_ARG_HELP}" == 'true' ]] && { usage; exit 0; }
+  exit 1
+
+
   # Downloads contents of the Dotfiles git repository
   dotfiles_get_repo || exit 1
-
-  ##############################################################################
-  #                   START: Process Command Line Arguments
-  ##############################################################################
-
-  ##############################################################################
-  #                     END: Process Command Line Arguments
-  ##############################################################################
-  readonly DOTFILES_SYNC='false'  
 
 
   # Enter Dotfiles directory
@@ -454,7 +563,6 @@ function main() {
   readonly MRAC_DISPLAY_ERR_MSG='true'
   readonly OS_DISPLAY_ERR_MSG='true'
   readonly XCODE_DISPLAY_ERR_MSG='true'
-
   readonly DISPLAY_ERROR_MSG='true'
   readonly DISPLAY_OUTPUT_MSG='true'
 
@@ -463,17 +571,17 @@ function main() {
   mrac::start_and_maintain || exit 1
 
 
-  # Ensures that only supported OS's run this script
+  # Ensures that only a supported OS can run this script
   os::supported || exit 1
 
 
-  # Obtains OS's lineage/type
-  SYS_OS_TYPE="$(os::type)"
+  # Obtains OS lineage/type
+  INSTALL_OS_TYPE="$(os::type)"
   (( $? != 0 )) && exit 1
-  readonly SYS_OS_TYPE
+  readonly INSTALL_OS_TYPE
 
 
-  # Ensures that the OS's package manager is present and has all necessary
+  # Ensures that the OS package manager is present and has all necessary
   # packages/utilities to function properly
   verify_pkg_mgr_and_helper_utils || exit 1
 
@@ -485,9 +593,12 @@ function main() {
   # Initialize Dotfiles directory as a local git repository
   dotfiles_init_repo || exit 1
 
-  
+
+  # Synchronizes Dotfiles directory with remote repository
+  [[ "${INSTALL_ARG_SYNC}" == 'true' ]] && dotfiles_sync_repo || exit 1
+
+
   echo ">>> DONE <<<"
-  exit 0
 }
 
 

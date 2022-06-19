@@ -3,12 +3,13 @@
 # Installation Script
 #
 
-
 ################################################################################
 #                     START: Script Restriction Checks
 ################################################################################
 
+#
 # TODO: Conditional WAS NOT tested to check if compliant with Bash versions < 3.
+#
 # Ensures that this script can execute correctly on this version of Bash.
 if ! test $BASH_VERSINFO -ge "3"; then
   echo "ERROR: This script needs to be executed with Bash Version 3 or" \
@@ -31,7 +32,6 @@ fi
 readonly DOTFILES_DIR="${HOME}/.dotfiles_temp"
 readonly DOTFILES_GIT_TARBALL='https://github.com/llovely/dotfiles/tarball/main'
 readonly DOTFILES_GIT_REMOTE='https://github.com/llovely/llovely/dotfiles.git'
-readonly INSTALL_SCRIPT_DISPLAY_ERR_MSG='true'
 INSTALL_ARG_ERROR='false'     # Set to readonly after parsing arguments
 INSTALL_ARG_HELP='false'      # Set to readonly after parsing arguments
 INSTALL_ARG_FORCE='false'     # Set to readonly after parsing arguments
@@ -45,7 +45,11 @@ INSTALL_OS_TYPE=''            # Set to readonly after being set
 # Globals
 INSTALL_SCRIPT_BREW_INSTALLED='false'
 INSTALL_SCRIPT_XCODE_INSTALLED='false'
+INSTALL_SCRIPT_APT_INSTALLED='false'
 INSTALL_SCRIPT_GIT_INSTALLED='false'
+INSTALL_SCRIPT_PKGS_INSTALLED='false'
+INSTALL_SCRIPT_DISPLAY_ERR_MSG='true'
+INSTALL_SCRIPT_DISPLAY_OUT_MSG='true'
 
 
 # Displays usage information
@@ -63,6 +67,44 @@ Options:
   -f, --force
   -b, --bash-exec
 __EOF__
+}
+
+
+################################################################################
+# Writes message(s) to stderr.
+# Globals:
+#   INSTALL_SCRIPT_DISPLAY_ERR_MSG
+# Arguments:
+#   Message to display (string)
+# Outputs:
+#   Writes message(s) to stderr.
+# Returns:
+#   0 if message(s) display successfully; otherwise, non-zero on error.
+################################################################################
+function err_msg() {
+  local messages="$*"
+
+  [[ "${INSTALL_SCRIPT_DISPLAY_ERR_MSG}" == 'true' ]] \
+    && printf "${messages}\n" >&2
+}
+
+
+################################################################################
+# Writes message(s) to stdout.
+# Globals:
+#   INSTALL_SCRIPT_DISPLAY_OUT_MSG
+# Arguments:
+#   Message to display (string)
+# Outputs:
+#   Writes message(s) to stdout.
+# Returns:
+#   0 if message(s) display successfully; otherwise, non-zero on error.
+################################################################################
+function out_msg() {
+  local messages="$*"
+
+  [[ "${INSTALL_SCRIPT_DISPLAY_OUT_MSG}" == 'true' ]] \
+    && printf "${messages}\n"
 }
 
 
@@ -352,74 +394,73 @@ function dotfiles_get_repo() {
 function dotfiles_init_repo() {
   out_msg "\nVerifying if '${DOTFILES_DIR}' directory is a git repository..."
 
-  if ! git rev-parse --is-inside-work-tree &> /dev/null; then
-    out_msg "'${DOTFILES_DIR}' directory is not a git repository!"
-
-    # Initialize Dotfiles directory as git repo
-    out_msg "Initializing '${DOTFILES_DIR}' directory as a local git"
-            "repository..."
-    if ! git init; then
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to initialize" \
-              "'${DOTFILES_DIR}' directory as a local git repository."
-      return 1
-    fi
-    out_msg "'${DOTFILES_DIR}' directory is now a local git repository!"
-
-
-    # Add Dotfiles Github repository as remote origin
-    out_msg "Adding '${DOTFILES_GIT_REMOTE}' as the remote origin..."
-    if ! git remote add origin ${DOTFILES_GIT_REMOTE}; then
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to add" \
-              "'${DOTFILES_GIT_REMOTE}' as the remote origin."
-      return 1
-    fi
-    out_msg "'${DOTFILES_GIT_REMOTE}' is now the remote origin!"
-
-
-    # Fetch changes from main branch
-    out_msg "Fetching changes from main branch of remote origin..."
-    if ! git fetch origin main; then
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to fetch" \
-              "changes from main branch of remote origin."
-      return 1
-    fi
-    out_msg "Changes successfully fetched from main branch!"
-
-
-    # Reset the index and working tree to the fetched HEAD
-    out_msg "Reverting to fetched HEAD commit (undoes uncommitted local" \
-            "changes)..."
-    if ! git reset --hard FETCH_HEAD; then
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to revert to fetched" \
-              "HEAD commit."
-      return 1
-    fi
-    out_msg "Reverting to fetched HEAD commit successful!"
-
-
-    # Remove all untracked files
-    out_msg "Removing all untracked files..."
-    if ! git clean -fd; then
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to remove all untracked" \
-              "files."
-      return 1
-    fi
-    out_msg "Succesfully removed all untracked files!"
-
-
-    # Initialize all submodules
-    out_msg ""
-    if ! git submodule update --init --recursive; then
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to remove all untracked" \
-              "files."
-      return 1
-    fi
-    out_msg ""
-
+  # Checks if inside git repo
+  if git rev-parse --is-inside-work-tree &> /dev/null; then
+    out_msg "'${DOTFILES_DIR}' is already a git repository!"
     return 0
   fi
+  out_msg "'${DOTFILES_DIR}' directory is not a git repository!"
 
-  out_msg "'${DOTFILES_DIR}' is already a git repository!"
+
+  # Initialize Dotfiles directory as git repo
+  out_msg "Initializing '${DOTFILES_DIR}' directory as a local git"
+          "repository..."
+  if ! git init; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to initialize" \
+            "'${DOTFILES_DIR}' directory as a local git repository."
+    return 1
+  fi
+  out_msg "'${DOTFILES_DIR}' directory is now a local git repository!"
+
+
+  # Add Dotfiles Github repository as remote origin
+  out_msg "Adding '${DOTFILES_GIT_REMOTE}' as the remote origin..."
+  if ! git remote add origin ${DOTFILES_GIT_REMOTE}; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to add" \
+            "'${DOTFILES_GIT_REMOTE}' as the remote origin."
+    return 1
+  fi
+  out_msg "'${DOTFILES_GIT_REMOTE}' is now the remote origin!"
+
+
+  # Fetch changes from main branch
+  out_msg "Fetching changes from main branch of remote origin..."
+  if ! git fetch origin main; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to fetch" \
+            "changes from main branch of remote origin."
+    return 1
+  fi
+  out_msg "Changes successfully fetched from main branch!"
+
+
+  # Reset the index and working tree to the fetched HEAD
+  out_msg "Reverting to fetched HEAD commit (undoes uncommitted local" \
+          "changes)..."
+  if ! git reset --hard FETCH_HEAD; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to revert to fetched" \
+            "HEAD commit."
+    return 1
+  fi
+  out_msg "Reverting to fetched HEAD commit successful!"
+
+
+  # Remove all untracked files
+  out_msg "Removing all untracked files..."
+  if ! git clean -fd; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to remove all untracked" \
+            "files."
+    return 1
+  fi
+  out_msg "Succesfully removed all untracked files!"
+
+
+  # Initialize all submodules
+  out_msg "Initializing submodules in this repository..."
+  if ! git submodule update --init --recursive; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed initialize submodules."
+    return 1
+  fi
+  out_msg "Successfully initialized all submodules!"
 }
 
 
@@ -438,27 +479,25 @@ function dotfiles_init_repo() {
 #   non-zero on error.
 ################################################################################
 function dotfiles_sync_repo() {
-  if [[ "${INSTALL_ARG_SYNC}" == 'true' ]]; then
-    out_msg "\nSynchronizing with remote Dotfiles repository..."
+  out_msg "\nSynchronizing with remote Dotfiles repository..."
 
-    # Pull latest changes
-    out_msg "Attempting to pull latest changes..."
-    if git pull --rebase --auto-stash origin main; then
-      out_msg "Latest changes successfully pulled!"
-    else
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to pull latest changes" \
-              "OR merge conflicts need to be resolved separately."
-    fi
-
-    # Initializing and/or pulling latest changes on submodules
-    out_msg ""
-    git submodule update --init --recursive --remote --merge --force
-    if (( $? != 0 )); then
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to update submodules."
-      return 1
-    fi
-    return 0
+  # Pull latest changes
+  out_msg "Attempting to pull latest changes..."
+  if ! git pull --rebase --auto-stash origin main; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to pull latest changes" \
+            "OR merge conflicts need to be resolved separately."
+    return 1
   fi
+  out_msg "Latest changes successfully pulled!"
+
+
+  # Initializing and/or pulling latest changes on submodules
+  out_msg "Attempting to pull latest changes from subdmodules..."
+  if ! git submodule update --init --recursive --remote --merge --force; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to pull latest changes."
+    return 1
+  fi
+  out_msg "Latest submodule changes successfully pulled!"
 }
 
 
@@ -479,19 +518,19 @@ function main() {
       -b|--bash-exec)
         shift
         if (( $# == 0 )); then
-          printf "ERROR: ${opt} option expected a path arguement.\n" >&2
+          err_msg "ERROR: ${opt} option expected a path arguement."
           INSTALL_ARG_ERROR='true'
           break
         fi
         case "$1" in
           -*|--*)
-            printf "ERROR: ${opt} option expected a path arguement.\n" >&2
+            err_msg "ERROR: ${opt} option expected a path arguement."
             INSTALL_ARG_ERROR='true'
             break
             ;;
           *)
             if [[ -z "$1" ]]; then
-              printf "ERROR: ${opt} option provided with empty string.\n" >&2
+              err_msg "ERROR: ${opt} option provided with empty string."
               INSTALL_ARG_ERROR='true'
               break
             fi
@@ -506,12 +545,12 @@ function main() {
         INSTALL_ARG_SYNC='true'
         ;;
       -*|--*)
-        echo "ERROR: Illegal option '${opt}' provided." >&2
+        err_msg "ERROR: Illegal option '${opt}' provided."
         INSTALL_ARG_ERROR='true'
         break
         ;;
       *)
-        printf "ERROR: Unknown option '${opt}' provided." >&2
+        err_msg "ERROR: Unknown option '${opt}' provided."
         INSTALL_ARG_ERROR='true'
         break
         ;;
@@ -551,18 +590,12 @@ function main() {
   source "${DOTFILES_DIR}/src/lib/xcode.sh"
 
 
-  # Imports Utilities
-  source "${DOTFILES_DIR}/src/utils/message.sh"
-
-
   # Configures global variables from libraries/utilities
   readonly BREW_BUNDLE_DIR="${DOTFILES_DIR}/packages"
   readonly BREW_DISPLAY_ERR_MSG='true'
   readonly MRAC_DISPLAY_ERR_MSG='true'
   readonly OS_DISPLAY_ERR_MSG='true'
   readonly XCODE_DISPLAY_ERR_MSG='true'
-  readonly DISPLAY_ERROR_MSG='true'
-  readonly DISPLAY_OUTPUT_MSG='true'
 
 
   # Maintain sudo for the duration of this script

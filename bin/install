@@ -29,24 +29,25 @@ fi
 
 
 # Global Constants
+readonly DOTFILES_GIT_REMOTE='https://github.com/llovely/llovely/dotfiles.git'
+readonly DOTFILES_GIT_TARBALL='https://github.com/llovely/dotfiles/tarball/main'
+readonly DOTFILES_TARBALL='/tmp/dotfiles.tar.gz'
 readonly DOTFILES_SYMLINK_LINK_NAME='.dotfiles_temp'
 readonly DOTFILES_SYMLINK_DIR_NAME='dotfiles'   # LINK_NAME -> DIR_NAME
 readonly DOTFILES_PARENT_DIR="${HOME}"
 readonly DOTFILES_DIR="${DOTFILES_PARENT_DIR}/${DOTFILES_SYMLINK_LINK_NAME}"
          DOTFILES_INSTALL_PARENT_DIR='' # Set readonly after parsing arguments
          DOTFILES_INSTALL_DIR=''        # Set readonly after parsing arguments
-readonly DOTFILES_TARBALL='/tmp/dotfiles.tar.gz'
-readonly DOTFILES_GIT_TARBALL='https://github.com/llovely/dotfiles/tarball/main'
-readonly DOTFILES_GIT_REMOTE='https://github.com/llovely/llovely/dotfiles.git'
-INSTALL_ARG_ERROR='false'           # Set readonly after parsing arguments
-INSTALL_ARG_HELP='false'            # Set readonly after parsing arguments
-INSTALL_ARG_FORCE='false'           # Set readonly after parsing arguments
-INSTALL_ARG_SYNC='false'            # Set readonly after parsing arguments
-INSTALL_ARG_PACKAGES='true'         # Set readonly after parsing arguments
-INSTALL_ARG_BASH_EXEC=''            # Set readonly after parsing arguments
-INSTALL_ARG_CONFIG='true'           # Set readonly after parsing arguments
-INSTALL_ARG_INSTALL_DIR='false'     # Set readonly after parsing arguments
-INSTALL_OS_TYPE=''                  # Set readonly after being set
+INSTALL_ARG_ERROR='false'               # Set readonly after parsing arguments
+INSTALL_ARG_HELP='false'                # Set readonly after parsing arguments
+INSTALL_ARG_FORCE='false'               # Set readonly after parsing arguments
+INSTALL_ARG_INSTALL_DIR='false'         # Set readonly after parsing arguments
+INSTALL_ARG_SYNC='false'                # Set readonly after parsing arguments
+INSTALL_ARG_PACKAGES='true'             # Set readonly after parsing arguments
+INSTALL_ARG_DEFAULT_BASH='true'         # Set readonly after parsing arguments
+INSTALL_ARG_CONFIG='true'               # Set readonly after parsing arguments
+INSTALL_ARG_BASH_EXEC=''                # Set readonly after parsing arguments
+INSTALL_OS_TYPE=''                      # Set readonly after being set
 
 
 # Globals
@@ -55,6 +56,8 @@ INSTALL_SCRIPT_XCODE_INSTALLED='false'
 INSTALL_SCRIPT_APT_INSTALLED='false'
 INSTALL_SCRIPT_GIT_INSTALLED='false'
 INSTALL_SCRIPT_PKGS_INSTALLED='false'
+INSTALL_SCRIPT_SHELL_DEFAULT_BASH='false'
+INSTALL_SCRIPT_CONFIG_INSTALLED='false'
 INSTALL_SCRIPT_DISPLAY_ERR_MSG='true'
 INSTALL_SCRIPT_DISPLAY_OUT_MSG='true'
 
@@ -70,23 +73,35 @@ Description:
 
 Options:
 
-  -h, --help                    Prints this help message and exit.
-  -f, --force                   Forcibly installs '.dotfiles' directory in one's
-                                in one's \$HOME directory, overwriting any
-                                existing Dotfiles directory present;
-                                any changes made prior will be
-                                lost. If a '.dotfiles' symbolic link is,
-                                encountered. only the symbolic link will be
-                                deleted.
-                                will be delted
-      --no-symlink              Does not create a symbolic link to the Dotfiles
-                                directory, when installing.
-                                This option is ignored if --install-dir is
-                                provided.
-      --install-dir <path>      Path to install Dotfiles directory.
-      --default-shell <path>
-      --no-packages
-      --sync
+  -h, --help                  Prints this help message and exit.
+  -f, --force                 Forcibly overwrites an existing Dotfiles
+                              installation, if encountered; any changes made
+                              prior may be lost. The '.dotfiles' directory in
+                              one's \$HOME directory will be overwritten. The
+                              '.dotfiles' symbolic link in one's \$HOME
+                              directory will be removed and a new link will be
+                              created to point to the new Dotfiles installation
+                              directory (see --install-dir option for more
+                              details).
+      --install-dir <path>    Directory path to place new Dotfiles installation;
+                              installation will be placed in a directory named
+                              directory named 'dotfiles'. A symbolic link from
+                              '\$HOME/.dotfiles' will link to 'path/dotfiles'.
+                              If the --force option is included, then any
+                              existing 'path/dotfiles' directory will be
+                              overwritten.
+      --sync                  Synchronizes the Dotfiles installation with the
+                              remote repository and pulls the latest changes
+                              from all included submodules. Synchronization
+                              occurs using 'git pull --rebase'; this operation
+                              may cause merge conflicts that will need to be
+                              resolved manually. USE THIS AT YOUR OWN RISK.
+      --no-packages           Does not install any packages.
+      --no-default-bash       Does not set Bash as the user's default shell.
+      --no-config             Does not overwrite existing program or shell
+                              configuration files (e.g., .bashrc, .inputrc, .vim,
+                              etc.).
+
 __EOF__
 }
 
@@ -126,6 +141,16 @@ function out_msg() {
 
   [[ "${INSTALL_SCRIPT_DISPLAY_OUT_MSG}" == 'true' ]] \
     && printf "${messages}\n"
+}
+
+
+# Displays final message and clean up any temporary files
+function cleanup() {
+  local prev_exit_code="$?"  # Captures previous exit code
+
+  err_msg "\nERROR: ${FUNCNAME[0]}() failed. NOT IMPLEMENTED."
+
+  exit "${prev_exit_code}"
 }
 
 
@@ -328,7 +353,7 @@ function dotfiles_get_repo() {
           "'${DOTFILES_PARENT_DIR}' directory..."
 
   # Removes existing dotfiles directory
-  if [[ -d "${DOTFILESD_DIR}" ]]; then
+  if [[ -d "${DOTFILES_DIR}" ]]; then
     if [[ "${INSTALL_ARG_FORCE}" != 'true' ]]; then
       out_msg "'${DOTFILES_SYMLINK_LINK_NAME}' directory already exists!" \
               "Directory will not be overwritten; moving on."
@@ -359,7 +384,7 @@ function dotfiles_get_repo() {
 
   # Removes symlink destination directory, if needed
   if [[ "${INSTALL_ARG_INSTALL_DIR}" == 'true' ]]; then
-    out_msg "Installation directory provided; verifying if " \
+    out_msg "Installation directory provided; verifying if" \
             "'${DOTFILES_SYMLINK_DIR_NAME}' directory exists in" \
             "'${DOTFILES_INSTALL_PARENT_DIR}' directory..."
     if [[ -d "${DOTFILES_INSTALL_DIR}" \
@@ -395,14 +420,14 @@ function dotfiles_get_repo() {
       fi
       out_msg "'${DOTFILES_SYMLINK_DIR_NAME}' directory created!"
     fi
-    out_msg "Creating symbolic link from '${DOTFIELS_DIR}' (LINK) ->" \
+    out_msg "Creating symbolic link from '${DOTFILES_DIR}' (LINK) ->" \
             "'${DOTFILES_INSTALL_DIR}' (TARGET)..."
     if ! ln -sf "${DOTFILES_INSTALL_DIR}" "${DOTFILES_DIR}"; then
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to create symbolic" \
-              "link '${DOTFIELS_DIR}'."
+              "link '${DOTFILES_DIR}'."
       return 1
     fi
-    out_msg "Symbolic link '${DOTFIELS_DIR}' successfully created!"
+    out_msg "Symbolic link '${DOTFILES_DIR}' successfully created!"
   else
     out_msg "Creating '${DOTFILES_SYMLINK_LINK_NAME}' directory in" \
             "'${DOTFILES_PARENT_DIR}' directory..."
@@ -573,15 +598,6 @@ function dotfiles_sync_repo() {
 # Entry point of this script.
 function main() {
 
-  # Parses command line arguments (getopts was not used since it does not
-  # support long arguments, and getopt was not used since the default version
-  # provided on macOS also does not support long arguments).
-
-
-  # Parses command line arguments (getopts was not used since it does not
-  # support long arguments, and getopt was not used since the default version
-  # provided on macOS also does not support long arguments).
-
   # Parses command line arguments. getopts and getopt (the default verion on
   # macOS) were not used since both do not support long options, and the
   # GNU getopt version cannot be installed until after parsing these arguments.
@@ -629,29 +645,32 @@ function main() {
             ;;
         esac
         ;;
-      --default-shell)
-        shift
-        if (( $# == 0 )); then
-          err_msg "ERROR: '${opt}' option -- Expected a file path arguement."
-          INSTALL_ARG_ERROR='true'
-          break
-        fi
-        case "$1" in
-          -*|--*)
-            err_msg "ERROR: '${opt}' option -- Expected a file path arguement."
-            INSTALL_ARG_ERROR='true'
-            break
-            ;;
-          *)
-            if ! [[ -f "$1" && -x "$1" ]]; then
-              err_msg "ERROR: '${opt}' option -- "
-              INSTALL_ARG_ERROR='true'
-              break
-            fi
-            INSTALL_ARG_BASH_EXEC="$1"
-            ;;
-        esac
+      --no-default-bash)
+        INSTALL_ARG_DEFAULT_BASH='false'
         ;;
+      # --default-shell)
+      #   shift
+      #   if (( $# == 0 )); then
+      #     err_msg "ERROR: '${opt}' option -- Expected a file path arguement."
+      #     INSTALL_ARG_ERROR='true'
+      #     break
+      #   fi
+      #   case "$1" in
+      #     -*|--*)
+      #       err_msg "ERROR: '${opt}' option -- Expected a file path arguement."
+      #       INSTALL_ARG_ERROR='true'
+      #       break
+      #       ;;
+      #     *)
+      #       if ! [[ -f "$1" && -x "$1" ]]; then
+      #         err_msg "ERROR: '${opt}' option -- "
+      #         INSTALL_ARG_ERROR='true'
+      #         break
+      #       fi
+      #       INSTALL_ARG_BASH_EXEC="$1"
+      #       ;;
+      #   esac
+      #   ;;
       --no-config)
         INSTALL_ARG_CONFIG='false'
         ;;
@@ -675,7 +694,8 @@ function main() {
     shift
   done
   if [[ "${INSTALL_ARG_INSTALL_DIR}" == 'true' ]]; then
-    if [[ "${DOTFILES_INSTALL_PARENT_DIR}" -ef "${HOME}" ]]; then
+    # Check if provided installation directory is the same
+    if [[ "${DOTFILES_INSTALL_PARENT_DIR}" -ef "${DOTFILES_PARENT_DIR}" ]]; then
       INSTALL_ARG_INSTALL_DIR='false'
       DOTFILES_INSTALL_PARENT_DIR=''
     fi
@@ -683,12 +703,11 @@ function main() {
   readonly INSTALL_ARG_ERROR
   readonly INSTALL_ARG_HELP
   readonly INSTALL_ARG_FORCE
+  readonly INSTALL_ARG_INSTALL_DIR
   readonly INSTALL_ARG_SYNC
   readonly INSTALL_ARG_PACKAGES
-  readonly INSTALL_ARG_BASH_EXEC
+  readonly INSTALL_ARG_DEFAULT_BASH
   readonly INSTALL_ARG_CONFIG
-  readonly INSTALL_ARG_INSTALL_DIR
-
 
   # Displays usage information when invalid option(s) provided
   [[ "${INSTALL_ARG_ERROR}" == 'true' ]] && { usage; exit 1; }
@@ -754,8 +773,20 @@ function main() {
   [[ "${INSTALL_ARG_SYNC}" == 'true' ]] && dotfiles_sync_repo || exit 1
 
 
-  echo ">>> DONE <<<"
+  # Installs packages
+  # [[ "${INSTALL_ARG_PACKAGES}" == 'true' ]] && : || exit 1
+
+
+  # Make Bash the user's default shell
+  # [[ "${INSTALL_ARG_DEFAULT_BASH}" == 'true' ]] && : || exit 1
+
+
+  # Overwrite configuration files with those in the Dotfiles installation
+  # [[ "${INSTALL_ARG_CONFIG}" == 'true' ]] && : || exit 1
 }
+
+
+trap 'cleanup' EXIT
 
 
 main "$@"

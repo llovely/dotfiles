@@ -12,7 +12,7 @@ DISPLAY_ERROR_MSG='true'
 # Globals:
 #   DISPLAY_ERROR_MSG
 # Arguments:
-#   Message to display (string)
+#   Message(s) to display (string)
 # Outputs:
 #   Writes message(s) to stderr.
 # Returns:
@@ -30,7 +30,7 @@ function err_msg() {
 # Globals:
 #   DISPLAY_OUTPUT_MSG
 # Arguments:
-#   Message to display (string)
+#   Message(s) to display (string)
 # Outputs:
 #   Writes message(s) to stdout.
 # Returns:

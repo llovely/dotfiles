@@ -143,7 +143,7 @@ function shell_known() {
 # Arguments:
 #   None
 # Outputs:
-#   Writes installation steps to stdout; prompts for user input; writes error 
+#   Writes installation steps to stdout; prompts for user input; writes error
 #   message(s) to stderr.
 # Returns:
 #   0 if shell is added to the list of valid login shells; otherwise, non-zero
@@ -182,7 +182,7 @@ function add_shell_to_valid_shells_list() {
   else
     err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to add '${DEFAULT_SHELL}'" \
             "to the list of valid login shells."
-    return 1 
+    return 1
   fi
 }
 
@@ -198,7 +198,7 @@ function add_shell_to_valid_shells_list() {
 # Arguments:
 #   None
 # Outputs:
-#   Writes installation steps to stdout; prompts for user input; writes error 
+#   Writes installation steps to stdout; prompts for user input; writes error
 #   message(s) to stderr.
 # Returns:
 #   0 if the default shell successfully changed; otherwise, non-zero on error.

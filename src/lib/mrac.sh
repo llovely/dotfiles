@@ -21,7 +21,7 @@ declare -ri MRAC_PID_UNUSED=-1
 declare -ri MRAC_RENEW_DUR_SEC_DEFAULT=60
 
 
-# Globals (these variable(s) SHOULD NOT be modified outside this library)
+# Globals (these variable(s) SHOULD NOT be modified outside of this library)
 declare -i MRAC_PID="${MRAC_PID_UNUSED}"
 
 

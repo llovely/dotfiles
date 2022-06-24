@@ -1,0 +1,368 @@
+#!/usr/bin/env bash
+#
+# This script changes the user's default login shell.
+#
+
+# Global Constants
+readonly DOTFILES_DIR="${HOME}/.dotfiles_temp"
+readonly VALID_LOGIN_SHELLS_FILE='/etc/shells'
+DEFAULT_SHELL=''                      # Set readonly after parsing arguments
+DEFAULT_SHELL_ARG_SHELL='false'       # Set readonly after parsing arguments
+DEFAULT_SHELL_ARG_ERROR='false'       # Set readonly after parsing arguments
+DEFAULT_SHELL_ARG_HELP='false'        # Set readonly after parsing arguments
+DEFAULT_SHELL_ARG_LIST='false'        # Set readonly after parsing arguments
+DEFAULT_SHELL_ARG_FORCE='false'       # Set readonly after parsing arguments
+DEFAULT_SHELL_ARG_SHELL='false'       # Set readonly after parsing arguments
+DEFAULT_SHELL_ARG_ADD='false'         # Set readonly after parsing arguments
+DEFAULT_SHELL_ARG_ONLY_KNOWN='false'  # Set readonly after parsing arguments
+
+
+# Ensures that this script can execute correctly on this version of Bash.
+source "${DOTFILES_DIR}/src/utils/bash_version.sh"
+valid_bash_version || exit 1
+
+
+# Ensures that this script is not executed with sudo.
+source "${DOTFILES_DIR}/src/utils/prevent_sudo.sh"
+executed_without_sudo || exit 1
+
+
+# Imports Libraries
+source "${DOTFILES_DIR}/src/lib/mrac.sh"
+
+
+# Imports Utilities
+source "${DOTFILES_DIR}/src/utils/message.sh"
+source "${DOTFILES_DIR}/src/utils/confirmation.sh"
+
+
+# Configures global variables from libraries/utilities
+readonly MRAC_DISPLAY_ERR_MSG='true'
+readonly DISPLAY_OUTPUT_MSG='true'
+readonly DISPLAY_ERROR_MSG='true'
+
+
+# Displays usage information
+function usage() {
+  cat <<-__EOF__
+Usage: ${0##*/} [options]
+
+Description:
+
+  Changes the user's default login shell. It is recommended that a user
+  chooses a login shell from the list of valid login shells, unless they know
+  what they are doing; setting an erroneous login shell may cause severe
+  problems. To view the list of valid login shells, invoke:
+
+        ${0##*/} --list
+
+Required Options:
+
+  -s, --shell <path>  Absolute path to user's desired default login shell.
+
+Options:
+
+  -h, --help          Displays this help message and exits.
+  -l, --list          Displays the full pathnames of all saved login shells;
+                      this option will override all other options, except for
+                      the --help option.
+  -f, --force         Attempts to make the provided login shell the user's
+                      default login shell without prompting for confirmation.
+                      Will attempt to add the provided login shell to the list
+                      of valid login shells without prompting for confirmation
+                      if the --add-list option is given.
+  -a, --add-list      Adds the provided login shell to the list of valid login
+                      shells; takes precedence over the --only-known option.
+  -o, --only-known    Provided login shell must be in the list of valid login
+                      shells in order to be set as the user's default login
+                      shell.
+__EOF__
+}
+
+
+################################################################################
+# Displays list of valid login shells.
+# Globals:
+#   FUNCNAME
+#   VALID_LOGIN_SHELLS_FILE
+# Arguments:
+#   None
+# Outputs:
+#   Writes list of login shells to stdout; writes error message(s) to stderr.
+# Returns:
+#   0 if list of valid login shells displayed; otherwise, non-zero on error.
+################################################################################
+function list_valid_login_shells() {
+  if ! cat "${VALID_LOGIN_SHELLS_FILE}"; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to display list of valid" \
+            "login shells."
+    return 1
+  fi
+}
+
+
+################################################################################
+# Indicates if the provided login shell is in the list of valid login shells.
+# Globals:
+#   FUNCNAME
+#   DEFAULT_SHELL
+#   VALID_LOGIN_SHELLS_FILE
+# Arguments:
+#   None
+# Outputs:
+#   Writes error message(s) to stderr.
+# Returns:
+#   0 if shell is in the list of valid login shells; otherwise 1. Other non-zero
+#   on error.
+################################################################################
+function shell_known() {
+  local exit_code
+
+  grep -s "${DEFAULT_SHELL}" "${VALID_LOGIN_SHELLS_FILE}" &> /dev/null
+  exit_code="$?"
+
+  if (( $exit_code == 1 )); then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. '${DEFAULT_SHELL}' is not in the" \
+            "list of valid login shells."
+    return 1
+  elif (( $exit_code == 2 )); then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to determine if" \
+            "'${DEFAULT_SHELL}' is in the list of valid login shells."
+    return 2
+  fi
+}
+
+
+################################################################################
+# Adds the provided login shell to the list of valid login shells.
+# Globals:
+#   FUNCNAME
+#   DEFAULT_SHELL
+#   DEFAULT_SHELL_ARG_FORCE
+#   VALID_LOGIN_SHELLS_FILE
+# Arguments:
+#   None
+# Outputs:
+#   Writes installation steps to stdout; prompts for user input; writes error 
+#   message(s) to stderr.
+# Returns:
+#   0 if shell is added to the list of valid login shells; otherwise, non-zero
+#   on error.
+################################################################################
+function add_shell_to_valid_shells_list() {
+  local prompt
+  local exit_code
+
+  prompt="\nAdding '${DEFAULT_SHELL}' to the list of valid login shells..."
+  if [[ "${DEFAULT_SHELL_ARG_FORCE}" != 'true' ]]; then
+    seek_confirmation "${prompt}"
+    if ! is_confirmed; then
+      out_msg "Aborting; moving on."
+      return 0
+    fi
+  else
+    out_msg "${prompt}"
+  fi
+
+  shell_known &> /dev/null
+  exit_code="$?"
+
+  if (( $exit_code == 0 )); then
+    out_msg "'${DEFAULT_SHELL}' is already present!"
+  elif (( $exit_code == 1 )); then
+    echo "${DEFAULT_SHELL}" 2> /dev/null \
+      | sudo tee -a "${VALID_LOGIN_SHELLS_FILE}" &> /dev/null
+    if (( $? == 0 )); then
+      out_msg "'${DEFAULT_SHELL}' successfully added!"
+    else
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to add" \
+              "'${DEFAULT_SHELL}' to the list of valid login shells."
+      return 1
+    fi
+  else
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to add '${DEFAULT_SHELL}'" \
+            "to the list of valid login shells."
+    return 1 
+  fi
+}
+
+
+################################################################################
+# Changes the user's default shell to the provided login shell.
+# Globals:
+#   USER
+#   FUNCNAME
+#   DEFAULT_SHELL
+#   DEFAULT_SHELL_ARG_FORCE
+#   VALID_LOGIN_SHELLS_FILE
+# Arguments:
+#   None
+# Outputs:
+#   Writes installation steps to stdout; prompts for user input; writes error 
+#   message(s) to stderr.
+# Returns:
+#   0 if the default shell successfully changed; otherwise, non-zero on error.
+################################################################################
+function change_default_shell() {
+  local prompt
+
+  prompt="\nChanging user's default shell to '${DEFAULT_SHELL}'..."
+  if [[ "${DEFAULT_SHELL_ARG_FORCE}" != 'true' ]]; then
+    seek_confirmation "${prompt}"
+    if ! is_confirmed; then
+      out_msg "Aborting; moving on."
+      return 0
+    fi
+  else
+    out_msg "${prompt}"
+  fi
+
+  if sudo chsh -s "${DEFAULT_SHELL}" "${USER}" &> /dev/null; then
+    out_msg "'${DEFAULT_SHELL}' is now the default shell!"
+  else
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to set" \
+            "'${DEFAULT_SHELL}' as the default shell."
+    return 1
+  fi
+}
+
+
+# Entry point of this script.
+function main() {
+
+  # Parses command line arguments. getopts and getopt (the default verion on
+  # macOS) were not used since both do not support long options, and the
+  # GNU getopt version cannot be installed until after parsing these arguments.
+  local opt
+  while (( $# > 0 )); do
+    opt="$1"
+    case "${opt}" in
+      -s|--shell)
+        if [[ "${DEFAULT_SHELL_ARG_SHELL}" == 'true' ]]; then
+          err_msg "ERROR: '${opt}' option -- Option can only be used once."
+          DEFAULT_SHELL_ARG_ERROR='true'
+          break
+        fi
+        shift
+        if (( $# == 0 )); then
+          err_msg "ERROR: '${opt}' option -- Expected a filepath argument."
+          DEFAULT_SHELL_ARG_ERROR='true'
+          break
+        fi
+        case "$1" in
+          -*|--*)
+            err_msg "ERROR: '${opt}' option -- Expected a filepath arguement."
+            DEFAULT_SHELL_ARG_ERROR='true'
+            break
+            ;;
+          *)
+            if ! [[ "$1" =~ ^(/.*)+ ]]; then
+              err_msg "ERROR: '${opt}' option -- '$1' is not an absolute" \
+                      "filepath."
+              DEFAULT_SHELL_ARG_ERROR='true'
+              break
+            elif ! [[ -e "$1" ]]; then
+              err_msg "ERROR: '${opt}' option -- '$1' does not exist."
+              DEFAULT_SHELL_ARG_ERROR='true'
+              break
+            elif ! [[ -f "$1" && -x "$1" ]]; then
+              err_msg "ERROR: '${opt}' option -- '$1' is not an executable" \
+                      "file."
+              DEFAULT_SHELL_ARG_ERROR='true'
+              break
+            else
+              DEFAULT_SHELL_ARG_SHELL='true'
+              DEFAULT_SHELL="$1"
+            fi
+            ;;
+        esac
+        ;;
+      -h|--help)
+        DEFAULT_SHELL_ARG_HELP='true'
+        ;;
+      -l|--list)
+        DEFAULT_SHELL_ARG_LIST='true'
+        ;;
+      -f|--force)
+        DEFAULT_SHELL_ARG_FORCE='true'
+        ;;
+      -a|--add-list)
+        DEFAULT_SHELL_ARG_ADD='true'
+        ;;
+      -o|--only-known)
+        DEFAULT_SHELL_ARG_ONLY_KNOWN='true'
+        ;;
+      -*|--*)
+        err_msg "ERROR: Illegal option '${opt}' provided."
+        DEFAULT_SHELL_ARG_ERROR='true'
+        break
+        ;;
+      *)
+        err_msg "ERROR: Unknown option '${opt}' provided."
+        DEFAULT_SHELL_ARG_ERROR='true'
+        break
+        ;;
+    esac
+    shift
+  done
+
+
+  # Sets global constants as readonly
+  readonly DEFAULT_SHELL
+  readonly DEFAULT_SHELL_ARG_SHELL
+  readonly DEFAULT_SHELL_ARG_ERROR
+  readonly DEFAULT_SHELL_ARG_HELP
+  readonly DEFAULT_SHELL_ARG_LIST
+  readonly DEFAULT_SHELL_ARG_FORCE
+  readonly DEFAULT_SHELL_ARG_SHELL
+  readonly DEFAULT_SHELL_ARG_ADD
+  readonly DEFAULT_SHELL_ARG_ONLY_KNOWN
+
+
+  # Displays usage information when invalid option(s) provided
+  [[ "${DEFAULT_SHELL_ARG_ERROR}" == 'true' ]] && { usage; exit 1; }
+
+
+  # Displays usage information, if requested
+  [[ "${DEFAULT_SHELL_ARG_HELP}" == 'true' ]] && { usage; exit 0; }
+
+
+  # Displays pathnames of valid login shells
+  [[ "${DEFAULT_SHELL_ARG_LIST}" == 'true' ]] \
+    && { list_valid_login_shells; exit 0; }
+
+
+  # Verifies if required option is provided.
+  if [[ "${DEFAULT_SHELL_ARG_SHELL}" != 'true' ]]; then
+    err_msg "ERROR: '--shell' option is required."
+    usage
+    exit 1
+  fi
+
+
+  # Maintain sudo for the duration of this script
+  ! mrac::renew &> /dev/null && out_msg  # Adds newline prior to sudo prompt
+  mrac::start_and_maintain || exit 1
+
+
+  # Adds provided login shell to the list of valid login shells
+  if [[ "${DEFAULT_SHELL_ARG_ADD}" == 'true' ]]; then
+    add_shell_to_valid_shells_list || exit 1
+  fi
+
+
+  # Verifies that the provided login shell is in the list of valid login shells
+  if [[ "${DEFAULT_SHELL_ARG_ONLY_KNOWN}" == 'true' ]]; then
+    shell_known || exit 1
+  fi
+
+
+  # Changes default shell to the user provided login shell
+  change_default_shell || exit 1
+
+
+  out_msg "\nRestart your terminal for the change to take effect."
+}
+
+
+main "$@"

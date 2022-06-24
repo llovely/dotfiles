@@ -177,7 +177,7 @@ function brew::install_cask() {
 ################################################################################
 function brew::install_bundle() {
   brew bundle install --verbose --no-lock \
-  --file="${BREW_BUNDLE_DIR/BREW_BUNDLE_FILE}"
+  --file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}"
   if (( $? != 0 )); then
     [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
     echo "ERROR: ${FUNCNAME[0]}() failed. An error occured while" \
@@ -205,7 +205,7 @@ function brew::install_bundle() {
 ################################################################################
 function brew::bundle() {
   brew bundle dump --force --describe --quiet \
-  --file="${BREW_BUNDLE_DIR/BREW_BUNDLE_FILE}" &> /dev/null
+  --file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}" &> /dev/null
   if (( $? != 0 )); then
     [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
     echo "ERROR: ${FUNCNAME[0]}() failed. Unable to bundle installed" \

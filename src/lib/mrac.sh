@@ -104,7 +104,6 @@ function mrac::maintain() {
     return 1
   fi
 
-
   # Maintains root authentication credentials in a background command
   if (( $MRAC_PID == $MRAC_PID_UNUSED )); then
     # TODO: Background command COULD be terminated unexpectedly; parent process

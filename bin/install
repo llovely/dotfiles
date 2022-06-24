@@ -73,35 +73,34 @@ Description:
 
 Options:
 
-  -h, --help                  Prints this help message and exit.
-  -f, --force                 Forcibly overwrites an existing Dotfiles
-                              installation, if encountered; any changes made
-                              prior may be lost. The '.dotfiles' directory in
-                              one's \$HOME directory will be overwritten. The
-                              '.dotfiles' symbolic link in one's \$HOME
-                              directory will be removed and a new link will be
-                              created to point to the new Dotfiles installation
-                              directory (see --install-dir option for more
-                              details).
-      --install-dir <path>    Directory path to place new Dotfiles installation;
-                              installation will be placed in a directory named
-                              directory named 'dotfiles'. A symbolic link from
-                              '\$HOME/.dotfiles' will link to 'path/dotfiles'.
-                              If the --force option is included, then any
-                              existing 'path/dotfiles' directory will be
-                              overwritten.
-      --sync                  Synchronizes the Dotfiles installation with the
-                              remote repository and pulls the latest changes
-                              from all included submodules. Synchronization
-                              occurs using 'git pull --rebase'; this operation
-                              may cause merge conflicts that will need to be
-                              resolved manually. USE THIS AT YOUR OWN RISK.
-      --no-packages           Does not install any packages.
-      --no-default-bash       Does not set Bash as the user's default shell.
-      --no-config             Does not overwrite existing program or shell
-                              configuration files (e.g., .bashrc, .inputrc, .vim,
-                              etc.).
-
+  -h, --help                Displays this help message and exit.
+  -f, --force               Forcibly overwrites an existing Dotfiles
+                            installation, if encountered; any changes made
+                            prior may be lost. The '.dotfiles' directory in
+                            one's \$HOME directory will be overwritten. The
+                            '.dotfiles' symbolic link in one's \$HOME
+                            directory will be removed and a new link will be
+                            created to point to the new Dotfiles installation
+                            directory (see --install-dir option for more
+                            details).
+      --install-dir <path>  Directory path to place new Dotfiles installation;
+                            installation will be placed in a directory named
+                            directory named 'dotfiles'. A symbolic link from
+                            '\$HOME/.dotfiles' will link to 'path/dotfiles'.
+                            If the --force option is included, then any
+                            existing 'path/dotfiles' directory will be
+                            overwritten.
+      --sync                Synchronizes the Dotfiles installation with the
+                            remote repository and pulls the latest changes
+                            from all included submodules. Synchronization
+                            occurs using 'git pull --rebase'; this operation
+                            may cause merge conflicts that will need to be
+                            resolved manually. USE THIS AT YOUR OWN RISK.
+      --no-packages         Does not install any packages.
+      --no-default-bash     Does not set Bash as the user's default shell.
+      --no-config           Does not overwrite existing program or shell
+                            configuration files (e.g., .bashrc, .inputrc, .vim,
+                            etc.).
 __EOF__
 }
 
@@ -645,40 +644,17 @@ function main() {
             ;;
         esac
         ;;
-      --no-default-bash)
-        INSTALL_ARG_DEFAULT_BASH='false'
-        ;;
-      # --default-shell)
-      #   shift
-      #   if (( $# == 0 )); then
-      #     err_msg "ERROR: '${opt}' option -- Expected a file path arguement."
-      #     INSTALL_ARG_ERROR='true'
-      #     break
-      #   fi
-      #   case "$1" in
-      #     -*|--*)
-      #       err_msg "ERROR: '${opt}' option -- Expected a file path arguement."
-      #       INSTALL_ARG_ERROR='true'
-      #       break
-      #       ;;
-      #     *)
-      #       if ! [[ -f "$1" && -x "$1" ]]; then
-      #         err_msg "ERROR: '${opt}' option -- "
-      #         INSTALL_ARG_ERROR='true'
-      #         break
-      #       fi
-      #       INSTALL_ARG_BASH_EXEC="$1"
-      #       ;;
-      #   esac
-      #   ;;
-      --no-config)
-        INSTALL_ARG_CONFIG='false'
+      --sync)
+        INSTALL_ARG_SYNC='true'
         ;;
       --no-packages)
         INSTALL_ARG_PACKAGES='false'
         ;;
-      --sync)
-        INSTALL_ARG_SYNC='true'
+      --no-default-bash)
+        INSTALL_ARG_DEFAULT_BASH='false'
+        ;;
+      --no-config)
+        INSTALL_ARG_CONFIG='false'
         ;;
       -*|--*)
         err_msg "ERROR: Illegal option '${opt}' provided."
@@ -698,8 +674,12 @@ function main() {
     if [[ "${DOTFILES_INSTALL_PARENT_DIR}" -ef "${DOTFILES_PARENT_DIR}" ]]; then
       INSTALL_ARG_INSTALL_DIR='false'
       DOTFILES_INSTALL_PARENT_DIR=''
+      DOTFILES_INSTALL_DIR=''
     fi
   fi
+
+  
+  # Sets global constants as readonly
   readonly INSTALL_ARG_ERROR
   readonly INSTALL_ARG_HELP
   readonly INSTALL_ARG_FORCE
@@ -708,6 +688,9 @@ function main() {
   readonly INSTALL_ARG_PACKAGES
   readonly INSTALL_ARG_DEFAULT_BASH
   readonly INSTALL_ARG_CONFIG
+  readonly DOTFILES_INSTALL_PARENT_DIR
+  readonly DOTFILES_INSTALL_DIR
+
 
   # Displays usage information when invalid option(s) provided
   [[ "${INSTALL_ARG_ERROR}" == 'true' ]] && { usage; exit 1; }
@@ -715,7 +698,9 @@ function main() {
 
   # Displays usage information, if requested
   [[ "${INSTALL_ARG_HELP}" == 'true' ]] && { usage; exit 0; }
-  # exit 1
+
+
+  trap 'cleanup' EXIT
 
 
   # Downloads contents of the Dotfiles git repository
@@ -784,9 +769,6 @@ function main() {
   # Overwrite configuration files with those in the Dotfiles installation
   # [[ "${INSTALL_ARG_CONFIG}" == 'true' ]] && : || exit 1
 }
-
-
-trap 'cleanup' EXIT
 
 
 main "$@"

@@ -1,0 +1,127 @@
+tap "coursier/formulas"
+tap "dart-lang/dart"
+tap "homebrew/bundle"
+tap "homebrew/cask"
+tap "homebrew/cask-drivers"
+tap "homebrew/core"
+tap "lampepfl/brew"
+tap "osx-cross/arm"
+tap "osx-cross/avr"
+tap "qmk/qmk"
+# Bourne-Again SHell, a UNIX command interpreter
+brew "bash"
+# Programmable completion for Bash 4.2+
+brew "bash-completion@2"
+# Interpreted, interactive, object-oriented programming language
+brew "python@3.9"
+# Core application library for C
+brew "glib"
+# Tool Command Language
+brew "tcl-tk"
+# Vector graphics library with cross-device output support
+brew "cairo"
+# Pack, ship and run any application as a lightweight container
+brew "docker"
+# GNU awk utility
+brew "gawk"
+# Installer for the general purpose language Haskell
+brew "ghcup"
+# Distributed revision control system
+brew "git"
+# Tcl/Tk UI for the git revision control system
+brew "git-gui"
+# GNU implementation of the famous stream editor
+brew "gnu-sed"
+# OpenType text shaping engine
+brew "harfbuzz"
+# Framework for layout and rendering of i18n text
+brew "pango"
+# Command-driven, interactive function plotting
+brew "gnuplot"
+# GNU grep, egrep and fgrep
+brew "grep"
+# Improved top (interactive process viewer)
+brew "htop"
+# Interactive environments for writing and running code
+brew "jupyterlab"
+# LLVM's OpenMP runtime library
+brew "libomp"
+# Macro processing language
+brew "m4"
+# Mac App Store command-line interface
+brew "mas"
+# NCurses Disk Usage
+brew "ncdu"
+# General purpose programming language in the ML family
+brew "ocaml"
+# OCaml package manager
+brew "opam"
+# Development kit for the Java programming language
+brew "openjdk"
+# Development kit for the Java programming language
+brew "openjdk@11"
+# Show ps output as a tree
+brew "pstree"
+# Interpreted, interactive, object-oriented programming language
+brew "python@3.8"
+# Cross-platform application and UI framework
+brew "qt"
+# Safe, concurrent, practical language
+brew "rust"
+# Build tool for Scala projects
+brew "sbt"
+# Static analysis and lint tool, for (ba)sh scripts
+brew "shellcheck"
+# Display directories as trees (with optional color/HTML output)
+brew "tree"
+# Internet file retriever
+brew "wget"
+# Download YouTube videos from the command-line
+brew "youtube-dl"
+# Experimental Scala Compiler
+brew "lampepfl/brew/dotty"
+# Quantum Mechanical Keyboard (QMK) Firmware
+brew "qmk/qmk/qmk"
+# Password manager that keeps all passwords secure behind one password
+cask "1password"
+# Voice and text chat software
+cask "discord"
+# Web browser
+cask "firefox"
+# Web browser
+cask "google-chrome"
+# IDE for Java development - community edition
+cask "intellij-idea-ce"
+# System monitoring app
+cask "istat-menus"
+# Terminal emulator as alternative to Apple's Terminal app
+cask "iterm2"
+cask "java"
+# Full TeX Live distribution with GUI applications
+cask "mactex"
+# Toolbox companion for QMK Firmware
+cask "qmk-toolbox"
+# Team communication and collaboration software
+cask "slack"
+# Music streaming service
+cask "spotify"
+# Development environment
+cask "vagrant"
+# Gives Vagrant VMware plugin access to various VMware functionalities
+cask "vagrant-vmware-utility"
+# Virtualizer for x86 hardware
+cask "virtualbox"
+# Open-source code editor
+cask "visual-studio-code"
+# Create, manage, and run virtual machines
+cask "vmware-fusion"
+mas "Compressor", id: 424390742
+mas "Final Cut Pro", id: 424389933
+mas "Kindle", id: 405399194
+mas "Logic Pro", id: 634148309
+mas "Magnet", id: 441258766
+mas "MainStage", id: 634159523
+mas "Motion", id: 434290957
+mas "OmniFocus", id: 1346203938
+mas "ToothFairy", id: 1191449274
+mas "Xcode", id: 497799835

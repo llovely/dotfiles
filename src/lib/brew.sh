@@ -5,12 +5,12 @@
 # manager.
 #
 
-# Constant Globals
+# Global Constants
 readonly BREW_BUNDLE_FILE='Brewfile'
 
 
 # Globals (these variable(s) can be set by the user of the library)
-BREW_BUNDLE_DIR="."
+BREW_BUNDLE_DIR='.'
 BREW_DISPLAY_ERR_MSG='true'
 
 
@@ -26,7 +26,7 @@ BREW_DISPLAY_ERR_MSG='true'
 #   0 if Homebrew is installed; otherwise, non-zero on error.
 ################################################################################
 function brew::installed() {
-  which -s brew &> /dev/null
+  which brew &> /dev/null
 }
 
 
@@ -84,104 +84,57 @@ function brew::install() {
   # TODO: Look for a better non-interactive way to install this Homebrew.
   url='https://raw.githubusercontent.com/Homebrew/install/master/install.sh'
   if ! ( echo -ne '\n' | /bin/bash -c "$(curl -fsSL "${url}")" ); then
-    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
-    echo "ERROR: ${FUNCNAME[0]}() failed. An error occured during" \
-         "Homebrew installation." >&2
+    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] \
+      && echo "ERROR: ${FUNCNAME[0]}() failed. An error occured during" \
+              "Homebrew installation." >&2
     return 1
   fi
 }
 
 
 ################################################################################
-# Installs Homebrew formula; reinstalls if already installed.
+# Installs provided Homebrew formula.
 # Globals:
 #   FUNCNAME
 #   BREW_DISPLAY_ERR_MSG
 # Arguments:
 #   Homebrew formula (string).
 # Outputs:
-#   Writes error message(s) to stderr; writes install statements to stdout.
+#   Writes install statements to stdout; writes error message(s) to stderr.
 # Returns:
 #   0 if formula installed; otherwise, non-zero on error.
 ################################################################################
 function brew::install_formula() {
   local formula="$1"
 
-  if brew::installed_formula "${formula}" &> /dev/null; then
-    echo "'${formula}' formula is already installed, reinstalling."
-    if ! brew reinstall --formula "${formula}"; then
-      [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
-      echo "ERROR: ${FUNCNAME[0]}() failed. Unable to reinstall" \
-           "'${formula}' formula." >&2
-      return 1
-    fi
-  else
-    if ! brew install --formula "${formula}"; then
-      [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
-      echo "ERROR: ${FUNCNAME[0]}() failed. Unable to install" \
-           "'${formula}' formula." >&2
-      return 1
-    fi
+  if ! brew install --formula "${formula}"; then
+    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] \
+      && echo "ERROR: ${FUNCNAME[0]}() failed. Unable to install" \
+              "'${formula}' formula." >&2
+    return 1
   fi
 }
 
 
 ################################################################################
-# Installs Homebrew cask; reinstalls if already installed.
+# Installs provided Homebrew cask.
 # Globals:
 #   FUNCNAME
 #   BREW_DISPLAY_ERR_MSG
 # Arguments:
 #   Homebrew cask (string).
 # Outputs:
-#   Writes error message(s) to stderr; writes reinstall statement to stdout.
+#   Writes install statements to stdout; writes error message(s) to stderr.
 # Returns:
 #   0 if cask installed; otherwise, non-zero on error.
 ################################################################################
 function brew::install_cask() {
   local cask="$1"
 
-  if brew::installed_cask "${cask}" &> /dev/null; then
-    echo "'${cask}' cask is already installed, reinstalling."
-    if ! brew reinstall --cask --require-sha "${cask}"; then
-      [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
-      echo "ERROR: ${FUNCNAME[0]}() failed. Unable to reinstall" \
-           "'${cask}' cask." >&2
-      return 1
-    fi
-  else
-    if ! brew install --cask --require-sha "${cask}"; then
-      [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
-      echo "ERROR: ${FUNCNAME[0]}() failed. Unable to install" \
-           "'${cask}' cask." >&2
-      return 1
-    fi
-  fi
-}
-
-
-################################################################################
-# Installs Homebrew formulae, casks, images, and taps from a bundle file.
-# Globals:
-#   FUNCNAME
-#   BREW_BUNDLE_DIR
-#   BREW_BUNDLE_FILE
-#   BREW_DISPLAY_ERR_MSG
-# Arguments:
-#   None
-# Outputs:
-#   Writes installation output to stdout; writes error message(s) to stderr.
-# Returns:
-#   0 if casks/formulae/images/taps installed successfully; otherwise, non-zero
-#   on error.
-################################################################################
-function brew::install_bundle() {
-  brew bundle install --verbose --no-lock \
-  --file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}"
-  if (( $? != 0 )); then
-    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
-    echo "ERROR: ${FUNCNAME[0]}() failed. An error occured while" \
-         "installing all bundled casks/formulae/images/taps." >&2
+  if ! brew install --cask --require-sha "${cask}"; then
+    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] \
+      && echo "ERROR: ${FUNCNAME[0]}() failed. Unable to install" \
+              "'${cask}' cask." >&2
     return 1
   fi
 }
@@ -204,12 +157,77 @@ function brew::install_bundle() {
 #   on error.
 ################################################################################
 function brew::bundle() {
-  brew bundle dump --force --describe --quiet \
-  --file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}" &> /dev/null
+  local file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}"
+
+  brew bundle dump --force --describe --quiet --file="${file}" &> /dev/null
   if (( $? != 0 )); then
-    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] && \
-    echo "ERROR: ${FUNCNAME[0]}() failed. Unable to bundle installed" \
-         "casks/formulae/images/taps." >&2
+    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] \
+      && echo "ERROR: ${FUNCNAME[0]}() failed. Unable to bundle installed" \
+              "casks/formulae/images/taps." >&2
+    return 1
+  fi
+}
+
+
+################################################################################
+# Determines if a Homebrew bundle file exists.
+# Globals:
+#   FUNCNAME
+#   BREW_BUNDLE_DIR
+#   BREW_BUNDLE_FILE
+#   BREW_DISPLAY_ERR_MSG
+# Arguments:
+#   None
+# Outputs:
+#   Writes error message(s) to stderr.
+# Returns:
+#   0 if Homebrew bundle file exists; otherwise, non-zero on error.
+################################################################################
+function brew::bundle_exists() {
+  local file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}"
+
+  if [[ ! -e "${file}" ]]; then
+    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] \
+      && echo "ERROR: ${FUNCNAME[0]}() failed. '${file}' file does not" \
+              "exist."  >&2
+    return 1
+  fi
+
+  if ! [[ -f "${file}" && -r "${file}" ]]; then
+    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] \
+      && echo "ERROR: ${FUNCNAME[0]}() failed. Unable to read '${file}'" \
+              "file." >&2
+    return 1
+  fi
+}
+
+
+################################################################################
+# Installs Homebrew formulae, casks, images, and taps from a bundle file.
+# Globals:
+#   FUNCNAME
+#   BREW_BUNDLE_DIR
+#   BREW_BUNDLE_FILE
+#   BREW_DISPLAY_ERR_MSG
+# Arguments:
+#   None
+# Outputs:
+#   Writes installation output to stdout; writes error message(s) to stderr.
+# Returns:
+#   0 if all casks/formulae/images/taps successfully installed; otherwise,
+#   non-zero on error.
+################################################################################
+function brew::install_bundle() {
+  local file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}"
+
+  # Verify that Brewfile exists
+  brew::bundle_exists > /dev/null || return 1
+
+  # Install formulae, casks, images, and taps
+  if ! brew bundle install --no-lock --file="${file}"; then
+    [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] \
+      && echo "ERROR: ${FUNCNAME[0]}() failed. An error occured while" \
+              "processing bundle file." >&2
     return 1
   fi
 }

@@ -167,12 +167,12 @@ function cleanup() {
 function verify_homebrew() {
   out_msg "\nVerifying if Homebrew is installed..."
 
-  if ! brew::installed &> /dev/null; then
-    out_msg "\nHomebrew not found, installing..."
+  if brew::installed &> /dev/null; then
+    out_msg "Homebrew is already installed!"
+  else
+    out_msg "Homebrew not found; installing..."
     brew::install || return 1
     out_msg "Homebrew is installed!"
-  else
-    out_msg "Homebrew is already installed!"
   fi
 
   INSTALL_SCRIPT_BREW_INSTALLED='true'
@@ -302,11 +302,14 @@ function verify_pkg_mgr_and_utils() {
 #   0 if git installed successfully; otherwise, non-zero on error.
 ################################################################################
 function install_git() {
-  out_msg "\nInstalling git..."
-
   case "${INSTALL_OS_TYPE}" in
     "${OS_NAME_MACOS}")
-      brew::install_formula 'git' || return 1
+      out_msg "\nInstalling git with Homebew..."
+      if brew::installed_formula 'git' &> /dev/null; then
+        out_msg "git is already installed!"
+      else
+        brew::install_formula 'git' || return 1
+      fi
       ;;
     "${OS_NAME_DEBIAN}"|"${OS_NAME_UBUNTU}")
       err_msg "ERROR: ${FUNCNAME[0]}() failed. NOT IMPLEMENTED."
@@ -594,6 +597,36 @@ function dotfiles_sync_repo() {
 }
 
 
+function default_shell_bash() {
+  local bash_path
+
+  out_msg "\nVerifying that Bash is installed..."
+  case "${INSTALL_OS_TYPE}" in
+    "${OS_NAME_MACOS}")
+      if brew::installed_formula 'bash' &> /dev/null; then
+        out_msg "Bash is installed with Homebrew!"
+        bash_path='/usr/local/bin/bash'
+      else
+        out_msg "Bash is not installed with Homebrew; installing..."
+        brew::install_formula 'bash' || return 1
+        out_msg "Bash is now installed with Homebrew!"
+      fi
+      bash_path='/usr/local/bin/bash'
+      ;;
+    "${OS_NAME_DEBIAN}"|"${OS_NAME_UBUNTU}")
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown OS type encountered."
+      return 1 
+      ;;
+    *) # Unsupported OS type
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown OS type encountered."
+      return 1
+      ;;
+  esac
+
+  "${DOTFILES_DIR}/bin/default_shell" --shell "${bash_path}" --add-list --force
+}
+
+
 # Entry point of this script.
 function main() {
 
@@ -700,6 +733,10 @@ function main() {
   [[ "${INSTALL_ARG_HELP}" == 'true' ]] && { usage; exit 0; }
 
 
+  # Prompt user for password
+  sudo -p "%p, please enter your password to continue: " true &> /dev/null
+
+
   trap 'cleanup' EXIT
 
 
@@ -755,7 +792,9 @@ function main() {
 
 
   # Synchronizes Dotfiles directory with remote repository
-  [[ "${INSTALL_ARG_SYNC}" == 'true' ]] && dotfiles_sync_repo || exit 1
+  if [[ "${INSTALL_ARG_SYNC}" == 'true' ]]; then
+    dotfiles_sync_repo || exit 1
+  fi
 
 
   # Installs packages
@@ -763,8 +802,9 @@ function main() {
 
 
   # Make Bash the user's default shell
-  # [[ "${INSTALL_ARG_DEFAULT_BASH}" == 'true' ]] && : || exit 1
-
+  if [[ "${INSTALL_ARG_DEFAULT_BASH}" == 'true' ]]; then
+    default_shell_bash || exit 1
+  fi
 
   # Overwrite configuration files with those in the Dotfiles installation
   # [[ "${INSTALL_ARG_CONFIG}" == 'true' ]] && : || exit 1

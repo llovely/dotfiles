@@ -22,7 +22,7 @@ function seek_confirmation() {
   local messages="$*"
   local prompt="Are you sure you want to continue? [Y/n]: "
 
-  printf "${messages}\n"
+  [[ -z "${messages}" ]] || printf "${messages}\n"
   if ! read -r -p "${prompt}" CONFIRMATION_RESPONSE; then
     echo "ERROR: ${FUNCNAME[0]}() failed. Unable to obtain" \
          "confirmation." >&2

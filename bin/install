@@ -29,7 +29,7 @@ fi
 
 
 # Global Constants
-readonly DOTFILES_GIT_REMOTE='https://github.com/llovely/llovely/dotfiles.git'
+readonly DOTFILES_GIT_REMOTE='https://github.com/llovely/dotfiles.git'
 readonly DOTFILES_GIT_TARBALL='https://github.com/llovely/dotfiles/tarball/main'
 readonly DOTFILES_TARBALL='/tmp/dotfiles.tar.gz'
 readonly DOTFILES_SYMLINK_LINK_NAME='.dotfiles_temp'
@@ -215,13 +215,13 @@ function verify_xcode() {
       out_msg "Xcode Command Line Tools are ready for use."
     else
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown active developer" \
-              "directory '${xcode_path}' found." >&2
+              "directory '${xcode_path}' found."
       return 1
     fi
   else
     if [[ "${INSTALL_SCRIPT_BREW_INSTALLED}" == 'true' ]]; then
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Xcode Command Line Tools" \
-              "should have been installed with Homebrew." >&2
+              "should have been installed with Homebrew."
     fi
     out_msg "\nPlease install Xcode Command Line Tools manually to proceed." \
             "The easiest way to install would be to download the Xcode" \
@@ -245,8 +245,15 @@ function verify_xcode() {
 #   1
 ################################################################################
 function verify_apt() {
-  err_msg "ERROR: ${FUNCNAME[0]}() failed. NOT IMPLEMENTED."
-  return 1
+  out_msg "\nVerifying if APT package manager and utilities are installed..."
+
+  if apt::installed; then
+    out_msg "APT package manager and utilities are installed!"
+  else
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. This linux distro may not be" \
+            "using APT as its package manager. Installation of APT may cause" \
+            "problems; therefore, aborting."
+  fi
 
   INSTALL_SCRIPT_APT_INSTALLED='true'
 }
@@ -307,13 +314,19 @@ function install_git() {
       out_msg "\nInstalling git with Homebew..."
       if brew::installed_formula 'git' &> /dev/null; then
         out_msg "git is already installed!"
+        return 0
       else
         brew::install_formula 'git' || return 1
       fi
       ;;
     "${OS_NAME_DEBIAN}"|"${OS_NAME_UBUNTU}")
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. NOT IMPLEMENTED."
-      return 1
+      out_msg "\nInstalling git with APT..."
+      if apt::installed_package 'git' &> /dev/null; then
+        out_msg "git is already installed!"
+        return 0
+      else
+        apt::install_package 'git' || return 1
+      fi
       ;;
     *) # Unsupported OS type
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown OS type encountered."
@@ -376,7 +389,7 @@ function dotfiles_get_repo() {
   else
     out_msg "Removing any file with the name '${DOTFILES_SYMLINK_LINK_NAME}'..."
   fi
-  if ! rm -rvf "${DOTFILES_DIR}"; then
+  if ! rm -rf "${DOTFILES_DIR}"; then
     err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to remove" \
             "'${DOTFILES_SYMLINK_LINK_NAME}'."
     return 1
@@ -400,7 +413,7 @@ function dotfiles_get_repo() {
         out_msg "Removing any file with the name" \
                 "'${DOTFILES_SYMLINK_DIR_NAME}'..."
       fi
-      if ! rm -rvf "${DOTFILES_INSTALL_DIR}"; then
+      if ! rm -rf "${DOTFILES_INSTALL_DIR}"; then
         err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to remove" \
                 "'${DOTFILES_SYMLINK_DIR_NAME}'."
         return 1
@@ -499,7 +512,7 @@ function dotfiles_init_repo() {
 
 
   # Initialize Dotfiles directory as git repo
-  out_msg "Initializing '${DOTFILES_DIR}' directory as a local git"
+  out_msg "Initializing '${DOTFILES_DIR}' directory as a local git" \
           "repository..."
   if ! git init; then
     err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to initialize" \
@@ -510,8 +523,8 @@ function dotfiles_init_repo() {
 
 
   # Add Dotfiles Github repository as remote origin
-  out_msg "Adding '${DOTFILES_GIT_REMOTE}' as the remote origin..."
-  if ! git remote add origin ${DOTFILES_GIT_REMOTE}; then
+  out_msg "Adding '${DOTFILES_GIT_REMOTE}' as remote origin..."
+  if ! git remote add origin "${DOTFILES_GIT_REMOTE}"; then
     err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to add" \
             "'${DOTFILES_GIT_REMOTE}' as the remote origin."
     return 1
@@ -520,24 +533,43 @@ function dotfiles_init_repo() {
 
 
   # Fetch changes from main branch
-  out_msg "Fetching changes from main branch of remote origin..."
+  out_msg "Fetching changes from 'main' branch of remote origin..."
   if ! git fetch origin main; then
     err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to fetch" \
-            "changes from main branch of remote origin."
+            "changes from 'main' branch of remote origin."
     return 1
   fi
-  out_msg "Changes successfully fetched from main branch!"
+  out_msg "Changes successfully fetched from 'main' branch!"
 
 
   # Reset the index and working tree to the fetched HEAD
-  out_msg "Reverting to fetched HEAD commit (undoes uncommitted local" \
-          "changes)..."
+  out_msg "Reverting to fetched HEAD commit (undoes local changes)..."
   if ! git reset --hard FETCH_HEAD; then
     err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to revert to fetched" \
             "HEAD commit."
     return 1
   fi
   out_msg "Reverting to fetched HEAD commit successful!"
+
+
+  # Rename branch name to main
+  out_msg "Renaming current branch to 'main'..."
+  if ! git branch -m main; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to rename current branch" \
+            "to 'main'."
+    return 1
+  fi
+  out_msg "Current branch is now named 'main'!"
+
+
+  # Sets main branch upstream branch to origin main
+  out_msg "Setting 'main' branch's upstream branch to origin/main..."
+  if ! git branch --set-upstream-to=origin/main main; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to set origin/main as" \
+            "'main' branch's upstream branch."
+    return 1 
+  fi
+  out_msg "origin/main is now the 'main' branch's upstream branch!"
 
 
   # Remove all untracked files
@@ -597,6 +629,13 @@ function dotfiles_sync_repo() {
 }
 
 
+################################################################################
+#
+# Globals:
+# Arguments:
+# Outputs:
+# Returns:
+################################################################################
 function default_shell_bash() {
   local bash_path
 
@@ -605,17 +644,32 @@ function default_shell_bash() {
     "${OS_NAME_MACOS}")
       if brew::installed_formula 'bash' &> /dev/null; then
         out_msg "Bash is installed with Homebrew!"
-        bash_path='/usr/local/bin/bash'
       else
         out_msg "Bash is not installed with Homebrew; installing..."
         brew::install_formula 'bash' || return 1
         out_msg "Bash is now installed with Homebrew!"
       fi
-      bash_path='/usr/local/bin/bash'
+      bash_path="$(which bash 2> /dev/null)"
+      if (( $? != 0 )); then
+        err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to locate path to" \
+                "Bash executable."
+        return 1
+      fi 
       ;;
     "${OS_NAME_DEBIAN}"|"${OS_NAME_UBUNTU}")
-      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown OS type encountered."
-      return 1 
+      if apt::installed_package 'bash' &> /dev/null; then
+        out_msg "Bash is installed with APT!"
+      else
+        out_msg "Bash is not installed with APT; installing..."
+        apt::install_package 'bash' || return 1
+        out_msg "Bash is now installed with APT!"
+      fi
+      bash_path="$(which bash 2> /dev/null)"
+      if (( $? != 0 )); then
+        err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to locate path to" \
+                "Bash executable."
+        return 1
+      fi 
       ;;
     *) # Unsupported OS type
       err_msg "ERROR: ${FUNCNAME[0]}() failed. Unknown OS type encountered."
@@ -749,6 +803,7 @@ function main() {
 
 
   # Imports Libraries
+  source "${DOTFILES_DIR}/src/lib/apt.sh"
   source "${DOTFILES_DIR}/src/lib/brew.sh"
   source "${DOTFILES_DIR}/src/lib/mrac.sh"
   source "${DOTFILES_DIR}/src/lib/os.sh"
@@ -756,6 +811,8 @@ function main() {
 
 
   # Configures global variables from libraries/utilities
+  readonly APT_BUNDLE_DIR="${DOTFILES_DIR}/packages"
+  readonly APT_DISPLAY_ERR_MSG='true'
   readonly BREW_BUNDLE_DIR="${DOTFILES_DIR}/packages"
   readonly BREW_DISPLAY_ERR_MSG='true'
   readonly MRAC_DISPLAY_ERR_MSG='true'
@@ -765,7 +822,7 @@ function main() {
 
   # Maintain sudo for the duration of this script
   ! mrac::renew &> /dev/null && out_msg  # Adds newline prior to sudo prompt
-  mrac::start_and_maintain || exit 1
+  mrac::maintain || exit 1
 
 
   # Ensures that only a supported OS can run this script

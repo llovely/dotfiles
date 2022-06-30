@@ -1,0 +1,50 @@
+#
+# Executed by Bash for non-login shells. Sources all pertinent files
+# associated with the Bash shell.
+#
+
+# If running non-interactively, don't do anything.
+[[ "$-" != *i* ]] && return 0
+
+
+function source_bash_files() {
+  local -r DOTFILES_DIR="${HOME}/.dotfiles_temp"
+  local -ra BASH_FILES=(  # The order of these files may matter (untested)
+    "${DOTFILES_DIR}/config/shell/exports"
+    "${DOTFILES_DIR}/config/shell/bash_prompt"
+    "${DOTFILES_DIR}/config/shell/aliases"
+    "${DOTFILES_DIR}/config/shell/functions"
+    "${DOTFILES_DIR}/config/shell/paths"
+    "${DOTFILES_DIR}/config/shell/source"
+    "${HOME}/.bashrc.local"
+  )
+
+  local file
+  for file in "${BASH_FILES[@]}"; do
+    [[ -f "${file}" ]] && [[ -r "${file}" ]] && source "${file}"
+    if (( $? != 0 )); then
+      echo "ERROR: ${FUNCNAME[0]}() failed. Unable to source '${file}'." >&2
+    fi
+  done
+
+  local os_shell_dir
+  os_shell_dir="$(
+    local os_type
+    source "${DOTFILES_DIR}/src/lib/os.sh"
+    os_type="$(os::type 2> /dev/null)"
+    (( $? != 0 )) && exit 1
+    echo "${DOTFILES_DIR}/config/shell/${os_type}"
+  )"
+  (( $? != 0 )) && return 1
+  # Loops through files, ignore hidden files
+  for file in ${os_shell_dir}/*; do
+    [[ -f "${file}" ]] && [[ -r "${file}" ]] && source "${file}"
+    if (( $? != 0 )); then
+      echo "ERROR: ${FUNCNAME[0]}() failed. Unable to source '${file}'." >&2
+    fi
+  done
+}
+
+
+source_bash_files
+unset source_bash_files

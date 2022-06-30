@@ -1,0 +1,15 @@
+#
+# dotfiles/shell/macOS/source
+#
+# macOS specifc location to source additional variables, commands, and
+# files used ny one's shell.
+#
+# Author: Luis Love
+#
+
+# Homebrew Specific Formula Sources.
+( source "${DOTFILES_DIR}/src/lib/brew.sh" && brew::installed &> /dev/null )
+if (( $? == 0 )); then
+	# Bash Completions
+	[[ -r "$(brew --prefix)/etc/profile.d/bash_completion.sh" ]] && . "$(brew --prefix)/etc/profile.d/bash_completion.sh" > /dev/null 2>&1
+fi

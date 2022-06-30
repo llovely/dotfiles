@@ -1,0 +1,62 @@
+#
+# Defines custom PS1 and PS2 prompts for Bash shell.
+#
+
+# Identifies the current branch within a Git Repo
+function git_branch_prompt() {
+  git rev-parse --is-inside-work-tree &> /dev/null || return 1
+
+  # Attempts to obtain the branch name of the following order:
+  #	1) Short symbolic reference
+  #	2) Short SHA
+  #	3) Unknown branch, provide 'unknown' branch name
+  local branch
+  branch="$(
+    git symbolic-ref --quiet --short HEAD 2> /dev/null \
+      || git rev-parse --short HEAD 2> /dev/null
+  )"
+  (( $? != 0 )) && branch='<<< unknown-branch >>>'
+  echo -e "${1}(${2}${branch}${1})"
+}
+
+
+function set_PS1() {
+  source "${DOTFILES_DIR}/src/utils/escape_seq.sh"
+
+  # Default colors for username and hostname
+  local user_style="${ES_FG_GREEN}"
+  local host_style="${ES_FG_YELLOW}"
+
+  # Highlight hostname when connected via SSH
+  [[ ! -z "${SSH_TTY}" ]] && host_style="${ES_BOLD}${ES_FG_RED}"
+
+  # Highlight username when you are the root user
+  (( EUID == 0 )) && user_style="${ES_BOLD}${ES_FG_RED}"
+
+  # Creates PS1 Prompt
+  PS1="\[\033]0;\w\007\]"	  # Terminal Header
+  PS1+="\n"
+  PS1+="\[${user_style}\]\u" # Username
+  PS1+="\[${ES_FG_WHITE}\]@"
+  PS1+="\[${host_style}\]\h" # Hostname
+  PS1+="\[${ES_FG_WHITE}\]: "
+  PS1+="\[${ES_STANDOUT}${ES_FG_RED}\]\W "   # PWD
+  PS1+="\$(git_branch_prompt \"${ES_FG_WHITE}\" \"${ES_FG_CYAN}\")"  # Current Git Branch
+  PS1+="\n"
+  PS1+="\[${ES_FG_WHITE}\]\$ \[${ES_RESET}\]"
+  export PS1
+}
+
+
+function set_PS2() {
+  source "${DOTFILES_DIR}/src/utils/escape_seq.sh"
+
+  # Creates PS2 Prompt
+  PS2="\[${ES_FG_YELLOW}\]> ${ES_RESET}"
+  export PS2
+}
+
+
+set_PS1
+set_PS2
+unset set_PS1 set_PS2

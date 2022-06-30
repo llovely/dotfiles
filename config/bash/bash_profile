@@ -1,0 +1,14 @@
+#
+# Executed by Bash for login shells.
+#
+# In Bash, the login shell's order of preference on start up is as follows:
+#
+#   1) ~/.bash_profile
+#   2)    ~/.bash_login
+#   3)        ~/.profile
+#
+
+# If the current shell is Bash, source .bashrc
+[[ -n "$BASH_VERSION" ]] \
+  && [[ -f "${HOME}/.bashrc" ]] \
+  && source "${HOME}/.bashrc"

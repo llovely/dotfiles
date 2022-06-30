@@ -1,0 +1,15 @@
+#
+# Location to place exported shell variables
+#
+
+# Default editor
+export EDITOR='vim'
+
+# Sets 256 color profile, where possible
+[[ "${COLORTERM}" == gnome-* && "${TERM}" == xterm ]] \
+  && infocmp gnome-256color &> /dev/null
+if (( $? == 0 )); then
+  export TERM=gnome-256color
+elif infocmp xterm-256color &> /dev/null; then
+  export TERM=xterm-256color
+fi

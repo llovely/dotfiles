@@ -1,0 +1,9 @@
+#
+# Tells git which files/directories (or patterns) to ignore when commiting.
+#
+
+# macOS files
+.DS_Store
+
+# Visual Studio Code files
+.vscode

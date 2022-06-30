@@ -1,0 +1,18 @@
+#
+# Location to add additional paths (append/prepend) to the $PATH variable.
+#
+
+# Set PATH so it includes user's private bin if it exists
+if [ -d "${HOME}/bin" ] ; then
+    PATH="${HOME}/bin:${PATH}"
+fi
+
+# Set PATH so it includes user's private bin if it exists
+if [ -d "${HOME}/.local/bin" ] ; then
+    PATH="${HOME}/.local/bin:${PATH}"
+fi
+
+# Set PATH so it includes GHCUP bin if it exists
+if [ -d "${HOME}/.ghcup/bin" ] ; then
+    PATH="${HOME}/.ghcup/bin:${PATH}"
+fi

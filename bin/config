@@ -1,0 +1,399 @@
+#!/usr/bin/env bash
+#
+# This script installs shell and program configuration files into the user's
+# $HOME directory.
+#
+
+################################################################################
+#                     START: Script Restriction Checks
+################################################################################
+
+readonly DOTFILES_DIR="${HOME}/.dotfiles_temp"
+
+
+# Ensures that this script can execute correctly on this version of Bash.
+source "${DOTFILES_DIR}/src/utils/bash_version.sh"
+valid_bash_version || exit 1
+
+
+# Ensures that this script is not executed with sudo.
+source "${DOTFILES_DIR}/src/utils/prevent_sudo.sh"
+executed_without_sudo || exit 1
+
+################################################################################
+#                       END: Script Restriction Checks
+################################################################################
+
+
+# Global Constants
+readonly CONFIG_REG_FILES=(
+  "${DOTFILES_DIR}/config/inputrc"
+)
+readonly CONFIG_BASH_FILES=(
+  "${DOTFILES_DIR}/config/bash/bashrc"
+  "${DOTFILES_DIR}/config/bash/bash_profile"
+)
+readonly CONFIG_BASH_LOCAL_FILE="${HOME}/config/bashrc.local"
+readonly CONFIG_VIM_FILES=(
+  "${DOTFILES_DIR}/config/vim"
+  "${DOTFILES_DIR}/config/vim/vimrc"
+)
+readonly CONFIG_GHC_FILES=(
+  "${DOTFILES_DIR}/config/ghc"
+)
+readonly CONFIG_GIT_CONFIG_FILE="${DOTFILES_DIR}/config/git/gitconfig"
+readonly CONFIG_GIT_IGNORE_FILE="${DOTFILES_DIR}/config/git/gitignore"
+CONFIG_ARG_ERROR='false'        # Set readonly after parsing arguments
+CONFIG_ARG_HELP='false'         # Set readonly after parsing arguments
+CONFIG_ARG_FORCE='false'        # Set readonly after parsing arguments
+CONFIG_ARG_REG='true'           # Set readonly after parsing arguments
+CONFIG_ARG_BASH='true'          # Set readonly after parsing arguments
+CONFIG_ARG_BASH_LOCAL='true'    # Set readonly after parsing arguments
+CONFIG_ARG_VIM='true'           # Set readonly after parsing arguments
+CONFIG_ARG_GHC='true'           # Set readonly after parsing arguments
+CONFIG_ARG_GIT='true'           # Set readonly after parsing arguments
+
+
+# Imports Libraries
+source "${DOTFILES_DIR}/src/lib/mrac.sh"
+
+
+# Imports Utilities
+source "${DOTFILES_DIR}/src/utils/message.sh"
+source "${DOTFILES_DIR}/src/utils/confirmation.sh"
+
+
+# Configures global variables from libraries/utilities
+readonly MRAC_DISPLAY_ERR_MSG='true'
+readonly DISPLAY_OUTPUT_MSG='true'
+readonly DISPLAY_ERROR_MSG='true'
+
+
+# Displays usage information
+function usage() {
+  cat <<-__EOF__
+Usage: ${0##*/} [options]
+
+Description:
+
+  Changes the user's default login shell. It is recommended that a user
+  chooses a login shell from the list of valid login shells, unless they know
+  what they are doing; setting an erroneous login shell may cause severe
+  problems. To view the list of valid login shells, invoke:
+
+        ${0##*/} --list
+
+Required Options:
+
+  -s, --shell <path>  Absolute path to user's desired default login shell.
+
+Options:
+
+  -h, --help           Displays this help message and exits.
+  -f, --force          Attempts to make the provided login shell the user's
+                       default login shell without prompting for confirmation.
+                       Will attempt to add the provided login shell to the list
+                       of valid login shells without prompting for confirmation
+                       if the --add-list option is given.
+      --no-reg
+      --no-bash
+      --no-bash-local
+      --no-vim
+      --no-ghc
+      --no-git
+__EOF__
+}
+
+
+################################################################################
+# Creates symbolic links for all provided files/directories into the user's
+# $HOME directory.
+# Globals:
+#   HOME
+#   FUNCNAME
+# Arguments:
+#   One or more filepaths (string(s))
+# Outputs:
+#   Writes symbolic link creation steps to stdout; writes error message(s) to
+#   stderr.
+# Returns:
+#   0 if symbolic links successfully created; otherwise, non-zero on error.
+################################################################################
+function create_symlinks() {
+  local files=( "$@" )
+  local link
+  local target 
+
+  for file in "${files[@]}"; do
+    target="${file}"
+    link="${HOME}/.${file##*/}"
+
+    # Remove existing file/directory
+    if [[ -e "${link}" ]]; then
+      out_msg "Removing '${link}'..."
+      if ! rm -rf "${link}" &> /dev/null; then
+        err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to remove '${link}'."
+        return 1
+      fi
+      out_msg "'${link}' successfully removed!"
+    fi
+
+    # Create symbolic link
+    out_msg "Creating symbolic link from '${link}' (LINK) -> '${target}'" \
+            "(TARGET)..."
+    if ! ln -sf "${target}" "${link}"; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to create symbolic link."
+      return 1
+    fi
+    out_msg "Symbolic link successfully created!"
+  done
+}
+
+
+################################################################################
+# Creates symbolic links for an assortment of hidden configuration files.
+# Globals:
+#   HOME
+#   FUNCNAME
+#   CONFIG_ARG_FORCE
+#   CONFIG_REG_FILES
+# Arguments:
+#   None
+# Outputs:
+#   Writes symbolic link creation steps to stdout; writes error message(s) to
+#   stderr.
+# Returns:
+#   0 if symbolic links successfully created; otherwise, non-zero on error.
+################################################################################
+function config_reg() {
+  out_msg "\nSetting up symbolic links for an assortment of configuration" \
+          "files; the following files/directories will be replaced:"
+  for file in "${CONFIG_REG_FILES[@]}"; do 
+    out_msg " - ${HOME}/.${file##*/}"
+  done
+
+  if [[ "${CONFIG_ARG_FORCE}" != 'true' ]]; then
+    seek_confirmation
+    if ! is_confirmed; then
+      out_msg "Aborting; moving on."
+      return 0
+    fi
+  fi
+
+  if ! create_symlinks "${CONFIG_REG_FILES[@]}"; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to create a symbolic" \
+            "links."
+    return 1
+  fi
+  out_msg "Configuration files successfully setup!"
+}
+
+
+################################################################################
+# 
+# Globals:
+# Arguments:
+# Outputs:
+# Returns:
+################################################################################
+function config_bash() {
+  out_msg "\nSetting up symbolic links to Bash configuration files; the" \
+          "following files/directories will be replaced:"
+  for file in "${CONFIG_BASH_FILES[@]}"; do 
+    out_msg " - ${HOME}/.${file##*/}"
+  done
+
+  if [[ "${CONFIG_ARG_FORCE}" != 'true' ]]; then
+    seek_confirmation
+    if ! is_confirmed; then
+      out_msg "Aborting; moving on."
+      return 0
+    fi
+  fi
+
+  if ! create_symlinks "${CONFIG_BASH_FILES[@]}"; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to create symbolic" \
+            "links to Bash configuration files."
+    return 1
+  fi
+  out_msg "Bash configuration files successfully setup!"
+}
+
+
+################################################################################
+# 
+# Globals:
+# Arguments:
+# Outputs:
+# Returns:
+################################################################################
+function config_vim() {
+  return 1
+}
+
+
+################################################################################
+# Creates symbolic links for hidden GHC configuration files.
+# Globals:
+#   HOME
+#   FUNCNAME
+#   CONFIG_ARG_FORCE
+#   CONFIG_GHC_FILES
+# Arguments:
+#   None
+# Outputs:
+#   Writes symbolic link creation steps to stdout; writes error message(s) to
+#   stderr.
+# Returns:
+#   0 if symbolic links successfully created; otherwise, non-zero on error.
+################################################################################
+function config_ghc() {
+  out_msg "\nSetting up symbolic links to GHC configuration files; the" \
+          "following files/directories will be replaced:"
+  for file in "${CONFIG_GHC_FILES[@]}"; do 
+    out_msg " - ${HOME}/.${file##*/}"
+  done
+
+  if [[ "${CONFIG_ARG_FORCE}" != 'true' ]]; then
+    seek_confirmation
+    if ! is_confirmed; then
+      out_msg "Aborting; moving on."
+      return 0
+    fi
+  fi
+
+  if ! create_symlinks "${CONFIG_GHC_FILES[@]}"; then
+    err_msg "ERROR: ${FUNCNAME[0]}() failed. Failed to create symbolic" \
+            "links to GHC configuration files."
+    return 1
+  fi
+  out_msg "GHC configuration files successfully setup!"
+}
+
+
+################################################################################
+# 
+# Globals:
+# Arguments:
+# Outputs:
+# Returns:
+################################################################################
+function config_git() {
+  return 1
+}
+
+
+# Entry point of this script.
+function main() {
+
+  # Parses command line arguments. getopts and getopt (the default verion on
+  # macOS) were not used since both do not support long options, and the
+  # GNU getopt version cannot be installed until after parsing these arguments.
+  local opt
+  while (( $# > 0 )); do
+    opt="$1"
+    case "${opt}" in
+      -h|--help) 
+        CONFIG_ARG_HELP='true' 
+        ;;
+      -f|--force)       
+        CONFIG_ARG_FORCE='true' 
+        ;;
+      --no-reg)         
+        CONFIG_ARG_REG='false' 
+        ;;
+      --no-bash)        
+        CONFIG_ARG_BASH='false' 
+        ;;
+      --no-bash-local)  
+        CONFIG_ARG_BASH_LOCAL='false' 
+        ;;
+      --no-vim)         
+        CONFIG_ARG_VIM='false' 
+        ;;
+      --no-ghc)         
+        CONFIG_ARG_GHC='false' 
+        ;;
+      --no-git)         
+        CONFIG_ARG_GIT='false' 
+        ;;
+      -*|--*)
+        err_msg "ERROR: Illegal option '${opt}' provided."
+        CONFIG_ARG_ERROR='true'
+        break
+        ;;
+      *)
+        err_msg "ERROR: Unknown option '${opt}' provided."
+        CONFIG_ARG_ERROR='true'
+        break
+        ;;
+    esac
+    shift
+  done
+
+
+  # Sets global constants as readonly
+  readonly CONFIG_ARG_ERROR
+  readonly CONFIG_ARG_HELP
+  readonly CONFIG_ARG_FORCE
+  readonly CONFIG_ARG_REG
+  readonly CONFIG_ARG_BASH
+  readonly CONFIG_ARG_BASH_LOCAL
+  readonly CONFIG_ARG_VIM
+  readonly CONFIG_ARG_GHC
+  readonly CONFIG_ARG_GIT
+
+
+  # Displays usage information when invalid option(s) provided
+  [[ "${CONFIG_ARG_ERROR}" == 'true' ]] && { usage; exit 1; }
+
+
+  # Displays usage information, if requested
+  [[ "${CONFIG_ARG_HELP}" == 'true' ]] && { usage; exit 0; }
+
+
+  # Maintain sudo for the duration of this script
+  ! mrac::renew &> /dev/null && out_msg  # Adds newline prior to sudo prompt
+  mrac::maintain || exit 1
+
+
+  # # Setup an assortment of configuration files
+  # if [[ "${CONFIG_ARG_REG}" == 'true' ]]; then
+  #   config_reg || exit 1
+  # fi
+
+
+  # # Setup Bash configuration files
+  # if [[ "${CONFIG_ARG_BASH}" == 'true' ]]; then
+  #   config_bash || exit 1
+  # fi
+
+
+  # # Setup VIM configuration files
+  # if [[ "${CONFIG_ARG_VIM}" == 'true' ]]; then
+  #   config_vim || exit 1
+  # fi
+
+
+  # Setup GHC configuration files
+  # if [[ "${CONFIG_ARG_GHC}" == 'true' ]]; then
+  #   config_ghc || exit 1
+  # fi
+  
+
+  # # Setup GIT configuration files
+  # if [[ "${CONFIG_ARG_GIT}" == 'true' ]]; then
+  #   config_git || exit 1
+  # fi
+
+
+  # Sets up configuration files
+  # [[ "${CONFIG_ARG_REG}"  == 'true' ]] && { config_reg  || exit 1; }
+  [[ "${CONFIG_ARG_BASH}" == 'true' ]] && { config_bash || exit 1; }
+  # [[ "${CONFIG_ARG_VIM}"  == 'true' ]] && { config_vim  || exit 1; }
+  [[ "${CONFIG_ARG_GHC}"  == 'true' ]] && { config_ghc  || exit 1; }
+  # [[ "${CONFIG_ARG_GIT}"  == 'true' ]] && { config_git  || exit 1; }
+}
+
+
+main "$@"

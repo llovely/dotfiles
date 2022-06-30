@@ -10,12 +10,12 @@
 function source_bash_files() {
   local -r DOTFILES_DIR="${HOME}/.dotfiles_temp"
   local -ra BASH_FILES=(  # The order of these files may matter (untested)
-    "${DOTFILES_DIR}/config/shell/exports"
-    "${DOTFILES_DIR}/config/shell/bash_prompt"
-    "${DOTFILES_DIR}/config/shell/aliases"
-    "${DOTFILES_DIR}/config/shell/functions"
-    "${DOTFILES_DIR}/config/shell/paths"
-    "${DOTFILES_DIR}/config/shell/source"
+    "${DOTFILES_DIR}/config/bash/exports"
+    "${DOTFILES_DIR}/config/bash/bash_prompt"
+    "${DOTFILES_DIR}/config/bash/aliases"
+    "${DOTFILES_DIR}/config/bash/functions"
+    "${DOTFILES_DIR}/config/bash/paths"
+    "${DOTFILES_DIR}/config/bash/source"
     "${HOME}/.bashrc.local"
   )
 

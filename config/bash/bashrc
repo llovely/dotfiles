@@ -33,10 +33,11 @@ function source_bash_files() {
     source "${DOTFILES_DIR}/src/lib/os.sh"
     os_type="$(os::type 2> /dev/null)"
     (( $? != 0 )) && exit 1
-    echo "${DOTFILES_DIR}/config/shell/${os_type}"
+    echo "${DOTFILES_DIR}/config/bash/${os_type}"
   )"
   (( $? != 0 )) && return 1
   # Loops through files, ignore hidden files
+  [[ -d "${os_shell_dir}" ]] && [[ -r "${os_shell_dir}" ]] || return 1
   for file in ${os_shell_dir}/*; do
     [[ -f "${file}" ]] && [[ -r "${file}" ]] && source "${file}"
     if (( $? != 0 )); then
@@ -47,4 +48,4 @@ function source_bash_files() {
 
 
 source_bash_files
-unset source_bash_files
+unset -f source_bash_files

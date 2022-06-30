@@ -37,9 +37,9 @@ function set_PS1() {
   PS1="\[\033]0;\w\007\]"	  # Terminal Header
   PS1+="\n"
   PS1+="\[${user_style}\]\u" # Username
-  PS1+="\[${ES_FG_WHITE}\]@"
+  PS1+="\[${ES_RESET}${ES_FG_WHITE}\]@"
   PS1+="\[${host_style}\]\h" # Hostname
-  PS1+="\[${ES_FG_WHITE}\]: "
+  PS1+="\[${ES_RESET}${ES_FG_WHITE}\]: "
   PS1+="\[${ES_FG_ORANGE}\]\W "   # PWD
   PS1+="\$(git_branch_prompt \"${ES_FG_WHITE}\" \"${ES_FG_CYAN}\")"  # Current Git Branch
   PS1+="\n"

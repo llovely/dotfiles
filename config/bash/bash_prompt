@@ -40,7 +40,7 @@ function set_PS1() {
   PS1+="\[${ES_FG_WHITE}\]@"
   PS1+="\[${host_style}\]\h" # Hostname
   PS1+="\[${ES_FG_WHITE}\]: "
-  PS1+="\[${ES_STANDOUT}${ES_FG_RED}\]\W "   # PWD
+  PS1+="\[${ES_FG_ORANGE}\]\W "   # PWD
   PS1+="\$(git_branch_prompt \"${ES_FG_WHITE}\" \"${ES_FG_CYAN}\")"  # Current Git Branch
   PS1+="\n"
   PS1+="\[${ES_FG_WHITE}\]\$ \[${ES_RESET}\]"
@@ -59,4 +59,5 @@ function set_PS2() {
 
 set_PS1
 set_PS2
-unset set_PS1 set_PS2
+unset -f set_PS1 
+unset -f set_PS2

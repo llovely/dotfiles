@@ -33,6 +33,9 @@ function source_bash_files() {
     source "${DOTFILES_DIR}/src/lib/os.sh"
     os_type="$(os::type 2> /dev/null)"
     (( $? != 0 )) && exit 1
+    [[ "${os_type}" == "${OS_NAME_DEBIAN}" \
+      || "${os_type}" == "${OS_NAME_UBUNTU}" ]] \
+      && os_type='debian_ubuntu'
     echo "${DOTFILES_DIR}/config/bash/${os_type}"
   )"
   (( $? != 0 )) && return 1

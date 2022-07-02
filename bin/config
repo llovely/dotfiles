@@ -30,7 +30,7 @@ readonly CONFIG_BASH_FILES=(
   "${DOTFILES_DIR}/config/bash/bashrc"
   "${DOTFILES_DIR}/config/bash/bash_profile"
 )
-readonly CONFIG_BASH_LOCAL_FILE="${HOME}/config/bashrc.local"
+readonly CONFIG_BASH_LOCAL_FILE="${DOTFILES_DIR}/config/bash/bashrc.local"
 readonly CONFIG_VIM_FILES=( "${DOTFILES_DIR}/config/vim" )
 readonly CONFIG_GHC_FILES=( "${DOTFILES_DIR}/config/ghc" )
 readonly CONFIG_GIT_CONFIG_FILE="${DOTFILES_DIR}/config/git/gitconfig"
@@ -44,6 +44,7 @@ CONFIG_ARG_BASH_LOCAL_REPLACE='false' # Set readonly after parsing arguments
 CONFIG_ARG_VIM='true'                 # Set readonly after parsing arguments
 CONFIG_ARG_GHC='true'                 # Set readonly after parsing arguments
 CONFIG_ARG_GIT='true'                 # Set readonly after parsing arguments
+CONFIG_ARG_GIT_CONFIG_REPLACE='false' # Set readonly after parsing arguments
 CONFIG_ARG_GIT_SET_EXCLUDES='false'   # Set readonly after parsing arguments
 CONFIG_ARG_INPUTRC='true'             # Set readonly after parsing arguments
 
@@ -96,8 +97,13 @@ Options:
       --no-vim              Does not install Vim specific configuration files.
       --no-ghc              Does not install GHC specific configuration files.
       --no-git              Does not install Git specific configuration files.
-      --git-set-excludes    Will set Git's core.excludesFile variable in
-                            '\$HOME/.gitconfig' (ir present) to
+      -git-config-replace   Signifies that an existing '\$HOME/.gitconfig'
+                            file is to be replaced by a blank templated version
+                            of the file. The contents of the original
+                            '\$HOME/.gitconfig' file will be lost. The --no-git
+                            option will overshadow this option, if included.
+      --git-set-excludes    Will set Git's core.excludesFile variable, for this
+                            user, in '\$HOME/.gitconfig' (if present) to
                             '\$HOME/.gitignore' (if present). The contents of
                             '\$HOME/.gitignore' will apply globally. The
                             --no-git option will overshadow this option, if
@@ -113,9 +119,10 @@ __EOF__
 # Globals:
 #   HOME
 #   FUNCNAME
+#   CONFIG_ARG_FORCE
 # Arguments:
 #   Name of program (string)
-#   One or more filepaths (string(s))
+#   One or more filepaths (strings)
 # Outputs:
 #   Writes symbolic link creation steps to stdout; writes error message(s) to
 #   stderr.
@@ -174,6 +181,69 @@ function create_symlinks() {
 }
 
 
+################################################################################
+# Creates a copy of a specified file into the user's $HOME directory.
+# Globals:
+#   HOME
+#   FUNCNAME
+# Arguments:
+#   Filepath (string)
+#   Boolean string (indicates if an existing specified file in the user's $HOME
+#                   directory should be replaced)
+# Outputs:
+#   Writes file creation steps to stdout; writes error message(s) to stderr.
+# Returns:
+#   0 if file successfully created; otherwise, non-zero on error.
+################################################################################
+function create_file_copy() {
+  local orig_file="$1"
+  local file="${HOME}/.${orig_file##*/}"
+  local replace_file="$2"
+  local file_created='false'
+
+  out_msg "Verifying if '${file}' file exists..."
+
+  if [[ -f "${file}" && -r "${file}" ]]; then
+    out_msg "'${file}' file already exists!"
+  else
+    if [[ -e "${file}" ]]; then
+      out_msg "'${file}' exists, but is not a regular readable file."
+      out_msg "Removing '${file}'..."
+      if ! rm -rf "${file}" &> /dev/null; then
+        err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to remove '${file}'."
+        return 1
+      fi
+      out_msg "'${file}' successfully removed!"
+    fi
+
+    out_msg "Creating '${file}' file..."
+    if ! cp "${orig_file}" "${file}" &> /dev/null; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to create '${file}' file."
+      return 1
+    fi
+    out_msg "'${file}' file successfully created!"
+    file_created='true'
+  fi
+
+  if [[ "${replace_file}" == 'true' && "${file_created}" != 'true' ]]; then
+    out_msg "Replacing '${file}' file..."
+    out_msg "Removing existing '${file}' file..."
+    if ! rm -rf "${file}" &> /dev/null; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to remove '${file}' file."
+      return 1
+    fi
+    out_msg "'${file}' file successfully removed!"
+    out_msg "Creating '${file}' file..."
+    if ! cp "${orig_file}" "${file}" &> /dev/null; then
+      err_msg "ERROR: ${FUNCNAME[0]}() failed. Unable to create '${file}' file"
+      return 1
+    fi
+    out_msg "'${file}' file successfully created!"
+    out_msg "'${file}' file successfully replaced!"
+  fi
+}
+
+
 # Entry point of this script.
 function main() {
 
@@ -205,6 +275,9 @@ function main() {
       --no-git)
         CONFIG_ARG_GIT='false'
         ;;
+      --git-config-replace)
+        CONFIG_ARG_GIT_CONFIG_REPLACE='true'
+        ;;
       --git-set-excludes)
         CONFIG_ARG_GIT_SET_EXCLUDES='true'
         ;;
@@ -235,6 +308,7 @@ function main() {
   readonly CONFIG_ARG_VIM
   readonly CONFIG_ARG_GHC
   readonly CONFIG_ARG_GIT
+  readonly CONFIG_ARG_GIT_CONFIG_REPLACE
   readonly CONFIG_ARG_GIT_SET_EXCLUDES
   readonly CONFIG_ARG_INPUTRC
 
@@ -252,13 +326,19 @@ function main() {
   mrac::maintain || exit 1
 
 
+  out_msg "Attempting to setup configuration files..."
+
+
   # Setup Bash configuration files
   if [[ "${CONFIG_ARG_BASH}" == 'true' ]]; then
+    local bashrc_local="${HOME}/.${CONFIG_BASH_LOCAL_FILE##*/}"
+
     create_symlinks 'Bash' "${CONFIG_BASH_FILES[@]}" || exit 1
 
-    # if [[ "${CONFIG_ARG_BASH_LOCAL_REPLACE}" == 'true' ]]; then
-
-    # fi
+    out_msg "'${bashrc_local}' is a file intended to store secret information;"
+    out_msg "this file should not be placed under version control."
+    create_file_copy "${CONFIG_BASH_LOCAL_FILE}" \
+      "${CONFIG_ARG_BASH_LOCAL_REPLACE}" || exit 1
   fi
 
 
@@ -274,10 +354,33 @@ function main() {
   fi
 
 
-  # # Setup GIT configuration files
-  # if [[ "${CONFIG_ARG_GIT}" == 'true' ]]; then
-  #   config_git || exit 1
-  # fi
+  # Setup GIT configuration files
+  if [[ "${CONFIG_ARG_GIT}" == 'true' ]]; then
+    local config_file="${HOME}/.${CONFIG_GIT_CONFIG_FILE##*/}"
+    local excludes_file="${HOME}/.${CONFIG_GIT_IGNORE_FILE##*/}"
+
+    create_symlinks 'Git' "${CONFIG_GIT_IGNORE_FILE}" || exit 1
+
+    create_file_copy "${CONFIG_GIT_CONFIG_FILE}" \
+      "${CONFIG_ARG_GIT_CONFIG_REPLACE}" || exit 1
+
+    if [[ "${CONFIG_ARG_GIT_SET_EXCLUDES}" == 'true' ]]; then
+      out_msg "Setting core.excludesFile variable, for this user, in" \
+              "'${config_file}' to '${excludes_file}'..."
+      if ! which git &> /dev/null; then
+        err_msg "ERROR: Git does not appear to be installed. Please install" \
+                "Git to continue."
+        exit 1
+      fi
+      if ! git config --global core.excludesfile "${excludes_file}"; then
+        err_msg "ERROR: Unable to set '${excludes_file}' as the" \
+                "core.excludesFile variable."
+        exit 1
+      fi
+      out_msg "core.excludesFile variable successfully set to" \
+              "'${excludes_file}'!"
+    fi
+  fi
 
   # Setup inputrc configuration file
   if [[ "${CONFIG_ARG_INPUTRC}" == 'true' ]]; then

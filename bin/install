@@ -863,8 +863,11 @@ function main() {
     default_shell_bash || exit 1
   fi
 
-  # Overwrite configuration files with those in the Dotfiles installation
-  # [[ "${INSTALL_ARG_CONFIG}" == 'true' ]] && : || exit 1
+  # Overwrites existing configuration files with those in the 
+  # Dotfiles installation
+  if [[ "${INSTALL_ARG_CONFIG}" == 'true' ]]; then
+    "${DOTFILES_DIR}/bin/config" --git-set-excludes --force || exit 1
+  fi
 }
 
 

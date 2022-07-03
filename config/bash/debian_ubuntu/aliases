@@ -8,7 +8,7 @@ export LS_COLORS='no=00:fi=00:di=04;35:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40
 # Enable color support for ls and grep
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls -F --color=auto'
+    alias ls='ls -vF --color=auto'
 
     alias grep='grep --color=auto'
     alias fgrep='fgrep --color=auto'

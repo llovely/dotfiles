@@ -7,8 +7,8 @@ alias sudo="sudo "
 
 
 # ls Variations
-alias ll="ls -lha"	# Display long format and dotfiles
-alias la="ls -A"      # Display dotfiles
+alias ll="ls -lhav"	# Display long format and dotfiles
+alias la="ls -Av"      # Display dotfiles
 
 
 # cd Variations

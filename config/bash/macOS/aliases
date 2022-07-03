@@ -11,7 +11,7 @@ export CLICOLOR=1
 export LSCOLORS=ExFxBxDxCxegedabagacad
 
 # ls Variation
-alias ls="ls -GF"
+alias ls="ls -vGF"
 
 # Determines if ggrep is installed using Homebrew; if so, then
 # construct grep aliases.

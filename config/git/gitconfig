@@ -3,7 +3,7 @@
 #
 
 [alias]
-	hist = log --pretty=format:\"%C(auto)%h%C(reset) %C(blue)%C(italic)%ad%C(reset) | %s%C(auto)%d%C(reset) [%C(green)%an%C(reset)]\" \
-				 	 --graph --date=short
-	unstage = restore --staged
-	last = log -1 HEAD
+  hist = log --pretty=format:\"%C(auto)%h%C(reset) %C(blue)%C(italic)%ad%C(reset) | %s%C(auto)%d%C(reset) [%C(green)%an%C(reset)]\" \
+          --graph --date=short
+  unstage = restore --staged
+  last = log -1 HEAD

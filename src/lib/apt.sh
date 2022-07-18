@@ -93,7 +93,7 @@ function apt::upgrade() {
 #   PIPESTATUS
 #   APT_DISPLAY_ERR_MSG
 # Arguments:
-#   Package name (string)
+#   APT package (string)
 # Outputs:
 #   Writes error message(s) to stderr.
 # Returns:
@@ -123,7 +123,7 @@ function apt::installed_package() {
 #   FUNCNAME
 #   APT_DISPLAY_ERR_MSG
 # Arguments:
-#   Package name (string)
+#   APT package (string)
 # Outputs:
 #   Writes install statements to stdout; writes error message(s) to stderr.
 # Returns:
@@ -148,7 +148,7 @@ function apt::install_package() {
 #   PIPESTATUS
 #   APT_DISPLAY_ERR_MSG
 # Arguments:
-#   Package name (string)
+#   APT package (string)
 # Outputs:
 #   Writes error message(s) to stderr.
 # Returns:
@@ -178,7 +178,7 @@ function apt::upgradeable_package() {
 #   FUNCNAME
 #   APT_DISPLAY_ERR_MSG
 # Arguments:
-#   Package name (string)
+#   APT package (string)
 # Outputs:
 #   Writes upgrade statements to stdout; writes error message(s) to stderr.
 # Returns:
@@ -204,14 +204,19 @@ function apt::upgrade_package() {
 #   APT_BUNDLE_FILE
 #   APT_DISPLAY_ERR_MSG
 # Arguments:
-#   None
+#   APT bundle file filepath (optional)
 # Outputs:
 #   Writes error message(s) to stderr.
 # Returns:
 #   0 if APT bundle file successfully created; otherwise, non-zero on error.
 ################################################################################
 function apt::bundle() {
-  local file="${APT_BUNDLE_DIR}/${APT_BUNDLE_FILE}"
+  local file="$1"
+
+  # Use default APT bundle file, if no file provided
+  if [[ -z "${1+x}" ]]; then
+    file="${APT_BUNDLE_DIR}/${APT_BUNDLE_FILE}" 
+  fi
 
   apt-mark showmanual > "${file}" 2> /dev/null
   if (( $? != 0 )); then
@@ -231,19 +236,24 @@ function apt::bundle() {
 #   APT_BUNDLE_FILE
 #   APT_DISPLAY_ERR_MSG
 # Arguments:
-#   None
+#   APT bundle file filepath (optional)
 # Outputs:
 #   Writes error message(s) to stderr.
 # Returns:
 #   0 if APT bundle file exists; otherwise, non-zero on error.
 ################################################################################
 function apt::bundle_exists() {
-  local file="${APT_BUNDLE_DIR}/${APT_BUNDLE_FILE}"
+  local file="$1"
+
+  # Use default APT bundle file, if no file provided
+  if [[ -z "${1+x}" ]]; then
+    file="${APT_BUNDLE_DIR}/${APT_BUNDLE_FILE}" 
+  fi
 
   if [[ ! -e "${file}" ]]; then
     [[ "${APT_DISPLAY_ERR_MSG}" == 'true' ]] \
       && echo "ERROR: ${FUNCNAME[0]}() failed. '${file}' file does not" \
-              "exist."  >&2
+              "exist." >&2
     return 1
   fi
 
@@ -259,7 +269,8 @@ function apt::bundle_exists() {
 ################################################################################
 # Installs APT packages from a bundle file.
 #
-# NOTE: The behavior of this function mimics that from the Homebrew command:
+# NOTE: The behavior of this function mimics that from the Homebrew (macOS
+#       package manager) command:
 #
 #       brew bundle install
 #
@@ -269,7 +280,7 @@ function apt::bundle_exists() {
 #   APT_BUNDLE_FILE
 #   APT_DISPLAY_ERR_MSG
 # Arguments:
-#   None
+#   APT bundle file filepath (optional)
 # Outputs:
 #   Writes installation steps to stdout; writes error message(s) to stderr.
 # Returns:
@@ -278,7 +289,12 @@ function apt::bundle_exists() {
 function apt::install_bundle() {
   declare -i num_pkgs=0
   declare -i num_pkgs_failed=0
-  local file="${APT_BUNDLE_DIR}/${APT_BUNDLE_FILE}"
+  local file="$1"
+
+  # Use default APT bundle file, if no file provided
+  if [[ -z "${1+x}" ]]; then
+    file="${APT_BUNDLE_DIR}/${APT_BUNDLE_FILE}" 
+  fi
 
   # Verify that Aptfile exists
   apt::bundle_exists > /dev/null || return 1

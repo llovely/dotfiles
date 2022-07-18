@@ -31,42 +31,6 @@ function brew::installed() {
 
 
 ################################################################################
-# Determines if a Homebrew formula is installed.
-# Globals:
-#   None
-# Arguments:
-#   Homebrew formula (string)
-# Outputs:
-#   None
-# Returns:
-#   0 if formula is installed; otherwise, non-zero on error.
-################################################################################
-function brew::installed_formula() {
-  local formula="$1"
-
-  brew list --formula "${formula}" &> /dev/null
-}
-
-
-################################################################################
-# Determines if a Homebrew cask is installed.
-# Globals:
-#   None
-# Arguments:
-#   Homebrew cask (string)
-# Outputs:
-#   None
-# Returns:
-#   0 if cask is installed; otherwise, non-zero on error.
-################################################################################
-function brew::installed_cask() {
-  local cask="$1"
-
-  brew list --cask "${cask}" &> /dev/null
-}
-
-
-################################################################################
 # Installs Homebrew.
 # Globals:
 #   FUNCNAME
@@ -93,6 +57,24 @@ function brew::install() {
 
 
 ################################################################################
+# Determines if a Homebrew formula is installed.
+# Globals:
+#   None
+# Arguments:
+#   Homebrew formula (string)
+# Outputs:
+#   None
+# Returns:
+#   0 if formula is installed; otherwise, non-zero on error.
+################################################################################
+function brew::installed_formula() {
+  local formula="$1"
+
+  brew list --formula "${formula}" &> /dev/null
+}
+
+
+################################################################################
 # Installs provided Homebrew formula.
 # Globals:
 #   FUNCNAME
@@ -113,6 +95,24 @@ function brew::install_formula() {
               "'${formula}' formula." >&2
     return 1
   fi
+}
+
+
+################################################################################
+# Determines if a Homebrew cask is installed.
+# Globals:
+#   None
+# Arguments:
+#   Homebrew cask (string)
+# Outputs:
+#   None
+# Returns:
+#   0 if cask is installed; otherwise, non-zero on error.
+################################################################################
+function brew::installed_cask() {
+  local cask="$1"
+
+  brew list --cask "${cask}" &> /dev/null
 }
 
 
@@ -149,7 +149,7 @@ function brew::install_cask() {
 #   BREW_BUNDLE_FILE
 #   BREW_DISPLAY_ERR_MSG
 # Arguments:
-#   None
+#   Homebrew bundle file filepath (optional)
 # Outputs:
 #   Writes error message(s) to stderr.
 # Returns:
@@ -157,7 +157,12 @@ function brew::install_cask() {
 #   on error.
 ################################################################################
 function brew::bundle() {
-  local file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}"
+  local file="$1"
+
+  # Use default Homebrew bundle file, if no file provided
+  if [[ -z "${1+x}" ]]; then
+    file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}" 
+  fi
 
   brew bundle dump --force --describe --quiet --file="${file}" &> /dev/null
   if (( $? != 0 )); then
@@ -177,19 +182,24 @@ function brew::bundle() {
 #   BREW_BUNDLE_FILE
 #   BREW_DISPLAY_ERR_MSG
 # Arguments:
-#   None
+#   Homebrew bundle file filepath (optional)
 # Outputs:
 #   Writes error message(s) to stderr.
 # Returns:
 #   0 if Homebrew bundle file exists; otherwise, non-zero on error.
 ################################################################################
 function brew::bundle_exists() {
-  local file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}"
+  local file="$1"
+
+  # Use default Homebrew bundle file, if no file provided
+  if [[ -z "${1+x}" ]]; then
+    file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}" 
+  fi
 
   if [[ ! -e "${file}" ]]; then
     [[ "${BREW_DISPLAY_ERR_MSG}" == 'true' ]] \
       && echo "ERROR: ${FUNCNAME[0]}() failed. '${file}' file does not" \
-              "exist."  >&2
+              "exist." >&2
     return 1
   fi
 
@@ -210,7 +220,7 @@ function brew::bundle_exists() {
 #   BREW_BUNDLE_FILE
 #   BREW_DISPLAY_ERR_MSG
 # Arguments:
-#   None
+#   Homebrew bundle file filepath (optional)
 # Outputs:
 #   Writes installation output to stdout; writes error message(s) to stderr.
 # Returns:
@@ -218,7 +228,12 @@ function brew::bundle_exists() {
 #   non-zero on error.
 ################################################################################
 function brew::install_bundle() {
-  local file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}"
+  local file="$1"
+
+  # Use default Homebrew bundle file, if no file provided
+  if [[ -z "${1+x}" ]]; then
+    file="${BREW_BUNDLE_DIR}/${BREW_BUNDLE_FILE}" 
+  fi
 
   # Verify that Brewfile exists
   brew::bundle_exists > /dev/null || return 1
